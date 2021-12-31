@@ -6,4 +6,8 @@ fn main() {
     ]);
 
     println!("{:?}", vec + vec);
+    println!("{:?}", vec / vec);
+    println!("{:?}", vec * vec);
+    println!("{:?}", vec % vec);
+    println!("{:?}", vec - vec);
 }

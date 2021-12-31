@@ -1,6 +1,6 @@
 use crate::ops::Simd;
 use crate::{One, Zero};
-use core::ops::Add;
+use core::ops::{Add, Div, Mul, Rem, Sub};
 use core::{fmt, ptr};
 
 pub use self::element::Element;
@@ -212,6 +212,75 @@ where
     }
 }
 
+impl<T, const LEN: usize> const Div<Vec<T, LEN>> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Div<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    fn div(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
+        vec_div(self, other)
+    }
+}
+
+impl<T, const LEN: usize> const Mul<Vec<T, LEN>> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Mul<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    fn mul(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
+        vec_mul(self, other)
+    }
+}
+
+impl<T, const LEN: usize> const Rem<Vec<T, LEN>> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Rem<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    fn rem(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
+        vec_rem(self, other)
+    }
+}
+
+impl<T, const LEN: usize> const Sub<Vec<T, LEN>> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Sub<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    fn sub(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
+        vec_sub(self, other)
+    }
+}
+
+/// Add two vectors.
 pub const fn vec_add<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
 where
     T: ~const Copy,
@@ -244,6 +313,170 @@ where
                 .as_remainder_mut_ptr()
                 .add(i)
                 .write(a_remainder.as_ptr().add(i).read() + b_remainder.as_ptr().add(i).read());
+
+            i += 1;
+        }
+    }
+
+    output
+}
+
+/// Divide two vectors.
+pub const fn vec_div<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Div<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    let (a_vectors, a_remainder) = a.to_simd();
+    let (b_vectors, b_remainder) = b.to_simd();
+    let mut output = Vec::<T, LEN>::uninit();
+    let mut i = 0;
+
+    unsafe {
+        while i < { Vec::<T, LEN>::VECTORS } {
+            output
+                .as_vector_mut_ptr()
+                .add(i)
+                .write(a_vectors.as_ptr().add(i).read() / b_vectors.as_ptr().add(i).read());
+
+            i += 1;
+        }
+
+        i = 0;
+
+        while i < { Vec::<T, LEN>::REMAINDER } {
+            output
+                .as_remainder_mut_ptr()
+                .add(i)
+                .write(a_remainder.as_ptr().add(i).read() / b_remainder.as_ptr().add(i).read());
+
+            i += 1;
+        }
+    }
+
+    output
+}
+
+/// Multiply two vectors.
+pub const fn vec_mul<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Mul<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    let (a_vectors, a_remainder) = a.to_simd();
+    let (b_vectors, b_remainder) = b.to_simd();
+    let mut output = Vec::<T, LEN>::uninit();
+    let mut i = 0;
+
+    unsafe {
+        while i < { Vec::<T, LEN>::VECTORS } {
+            output
+                .as_vector_mut_ptr()
+                .add(i)
+                .write(a_vectors.as_ptr().add(i).read() * b_vectors.as_ptr().add(i).read());
+
+            i += 1;
+        }
+
+        i = 0;
+
+        while i < { Vec::<T, LEN>::REMAINDER } {
+            output
+                .as_remainder_mut_ptr()
+                .add(i)
+                .write(a_remainder.as_ptr().add(i).read() * b_remainder.as_ptr().add(i).read());
+
+            i += 1;
+        }
+    }
+
+    output
+}
+
+/// Remainder two vectors.
+pub const fn vec_rem<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Rem<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    let (a_vectors, a_remainder) = a.to_simd();
+    let (b_vectors, b_remainder) = b.to_simd();
+    let mut output = Vec::<T, LEN>::uninit();
+    let mut i = 0;
+
+    unsafe {
+        while i < { Vec::<T, LEN>::VECTORS } {
+            output
+                .as_vector_mut_ptr()
+                .add(i)
+                .write(a_vectors.as_ptr().add(i).read() % b_vectors.as_ptr().add(i).read());
+
+            i += 1;
+        }
+
+        i = 0;
+
+        while i < { Vec::<T, LEN>::REMAINDER } {
+            output
+                .as_remainder_mut_ptr()
+                .add(i)
+                .write(a_remainder.as_ptr().add(i).read() % b_remainder.as_ptr().add(i).read());
+
+            i += 1;
+        }
+    }
+
+    output
+}
+
+/// Subtract two vectors.
+pub const fn vec_sub<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Sub<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    let (a_vectors, a_remainder) = a.to_simd();
+    let (b_vectors, b_remainder) = b.to_simd();
+    let mut output = Vec::<T, LEN>::uninit();
+    let mut i = 0;
+
+    unsafe {
+        while i < { Vec::<T, LEN>::VECTORS } {
+            output
+                .as_vector_mut_ptr()
+                .add(i)
+                .write(a_vectors.as_ptr().add(i).read() - b_vectors.as_ptr().add(i).read());
+
+            i += 1;
+        }
+
+        i = 0;
+
+        while i < { Vec::<T, LEN>::REMAINDER } {
+            output
+                .as_remainder_mut_ptr()
+                .add(i)
+                .write(a_remainder.as_ptr().add(i).read() - b_remainder.as_ptr().add(i).read());
 
             i += 1;
         }
