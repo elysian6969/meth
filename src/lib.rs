@@ -23,17 +23,16 @@ pub use self::matrix::Matrix;
 pub use self::one::One;
 pub use self::quaternion::Quaternion;
 pub use self::real::Real;
-pub use self::vec::Vec;
+pub use self::vec::{Element, Lanes, SupportedLanes, Vec};
 pub use self::zero::Zero;
 
 mod euler_angles;
 mod matrix;
 mod one;
-pub mod ops;
+mod ops;
 mod quaternion;
 mod real;
+mod vec;
 mod zero;
 
 pub(crate) mod mem;
-
-pub mod vec;

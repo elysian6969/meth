@@ -2,7 +2,7 @@ use self::sealed::Sealed;
 
 mod sealed;
 
-pub trait Real: Sized + Sealed {
+pub trait Real: Sealed {
     const DIGITS: u32;
     const EPSILON: Self;
     const INFINITY: Self;

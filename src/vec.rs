@@ -56,7 +56,7 @@ impl<T, const LEN: usize> Vec<T, LEN> {
     /// Number of lanes for SIMD operations.
     pub const LANES: usize = deduce_lanes(LEN);
 
-    /// Number of SIMD vectors needes for this vector.
+    /// Number of SIMD vectors needed for this vector.
     pub const VECTORS: usize = LEN / Self::LANES;
 
     /// Remainder of elements that cannot fit into SIMD vectors.
@@ -75,16 +75,16 @@ impl<T, const LEN: usize> Vec<T, LEN> {
     }
 
     #[allow(dead_code)]
-    pub const fn as_vector_ptr(&self) -> *const Simd<T, { Self::LANES }> {
+    pub(crate) const fn as_vector_ptr(&self) -> *const Simd<T, { Self::LANES }> {
         self.as_ptr() as *const Simd<T, { Self::LANES }>
     }
 
-    pub const fn as_vector_mut_ptr(&mut self) -> *mut Simd<T, { Self::LANES }> {
+    pub(crate) const fn as_vector_mut_ptr(&mut self) -> *mut Simd<T, { Self::LANES }> {
         self.as_mut_ptr() as *mut Simd<T, { Self::LANES }>
     }
 
     #[allow(dead_code)]
-    pub const fn as_remainder_ptr(&self) -> *const T
+    pub(crate) const fn as_remainder_ptr(&self) -> *const T
     where
         [(); Self::LANES]:,
     {
@@ -92,7 +92,7 @@ impl<T, const LEN: usize> Vec<T, LEN> {
         unsafe { self.as_vector_ptr().add(Self::VECTORS) as *const T }
     }
 
-    pub const fn as_remainder_mut_ptr(&mut self) -> *mut T
+    pub(crate) const fn as_remainder_mut_ptr(&mut self) -> *mut T
     where
         [(); Self::LANES]:,
     {
@@ -127,7 +127,7 @@ impl<T, const LEN: usize> Vec<T, LEN> {
         self.0
     }
 
-    /// Create a `Vec` from `slice`.
+    /// Create a new vector from a slice.
     #[inline]
     pub const fn from_slice(slice: &[T]) -> Self {
         assert!(
@@ -171,14 +171,14 @@ impl<T, const LEN: usize> Vec<T, LEN> {
         Self::splat(One::one())
     }
 
-    /// Create a `Vec` from uninitialized bytes.
+    /// Create a new vector from uninitialized bytes.
     #[inline]
     pub const fn uninit() -> Vec<T, LEN> {
         Self(crate::mem::uninit_array())
     }
 
     #[inline]
-    pub const fn to_simd(
+    pub(crate) const fn to_simd(
         self,
     ) -> (
         [Simd<T, { Self::LANES }>; Self::VECTORS],
