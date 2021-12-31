@@ -1,5 +1,6 @@
 use crate::ops::Simd;
 use crate::{One, Zero};
+use core::ops::Add;
 use core::{fmt, ptr};
 
 pub use self::element::Element;
@@ -8,6 +9,7 @@ pub use self::lanes::{Lanes, SupportedLanes};
 mod element;
 mod lanes;
 
+#[derive(Clone, Copy)]
 #[repr(C)]
 pub struct Vec<T, const LEN: usize>([T; LEN]);
 
@@ -33,20 +35,26 @@ impl<T, const LANES: usize, const VECTORS: usize, const REMAINDER: usize>
     }
 }
 
+const fn deduce_lanes(len: usize) -> usize {
+    if len.is_power_of_two() {
+        return len;
+    }
+
+    let lanes = len.next_power_of_two() >> 1;
+
+    if lanes > 8 {
+        8
+    } else {
+        lanes
+    }
+}
+
 impl<T, const LEN: usize> Vec<T, LEN> {
     /// Length of this vector.
     pub const LEN: usize = LEN;
 
     /// Number of lanes for SIMD operations.
-    pub const LANES: usize = {
-        let lanes = LEN.next_power_of_two() >> 1;
-
-        if lanes > 8 {
-            8
-        } else {
-            lanes
-        }
-    };
+    pub const LANES: usize = deduce_lanes(LEN);
 
     /// Number of SIMD vectors needes for this vector.
     pub const VECTORS: usize = LEN / Self::LANES;
@@ -64,6 +72,32 @@ impl<T, const LEN: usize> Vec<T, LEN> {
     #[inline]
     pub const fn as_mut_ptr(&mut self) -> *mut T {
         self.0.as_mut_ptr()
+    }
+
+    #[allow(dead_code)]
+    pub const fn as_vector_ptr(&self) -> *const Simd<T, { Self::LANES }> {
+        self.as_ptr() as *const Simd<T, { Self::LANES }>
+    }
+
+    pub const fn as_vector_mut_ptr(&mut self) -> *mut Simd<T, { Self::LANES }> {
+        self.as_mut_ptr() as *mut Simd<T, { Self::LANES }>
+    }
+
+    #[allow(dead_code)]
+    pub const fn as_remainder_ptr(&self) -> *const T
+    where
+        [(); Self::LANES]:,
+    {
+        // SAFETY: It's a valid offset.
+        unsafe { self.as_vector_ptr().add(Self::VECTORS) as *const T }
+    }
+
+    pub const fn as_remainder_mut_ptr(&mut self) -> *mut T
+    where
+        [(); Self::LANES]:,
+    {
+        // SAFETY: It's a valid offset.
+        unsafe { self.as_vector_mut_ptr().add(Self::VECTORS) as *mut T }
     }
 
     /// Returns an array reference containing the entire vector.
@@ -159,6 +193,63 @@ impl<T, const LEN: usize> Vec<T, LEN> {
 
         (vectors, remainder)
     }
+}
+
+impl<T, const LEN: usize> const Add<Vec<T, LEN>> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Add<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    fn add(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
+        vec_add(self, other)
+    }
+}
+
+pub const fn vec_add<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Add<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    let (a_vectors, a_remainder) = a.to_simd();
+    let (b_vectors, b_remainder) = b.to_simd();
+    let mut output = Vec::<T, LEN>::uninit();
+    let mut i = 0;
+
+    unsafe {
+        while i < { Vec::<T, LEN>::VECTORS } {
+            output
+                .as_vector_mut_ptr()
+                .add(i)
+                .write(a_vectors.as_ptr().add(i).read() + b_vectors.as_ptr().add(i).read());
+
+            i += 1;
+        }
+
+        i = 0;
+
+        while i < { Vec::<T, LEN>::REMAINDER } {
+            output
+                .as_remainder_mut_ptr()
+                .add(i)
+                .write(a_remainder.as_ptr().add(i).read() + b_remainder.as_ptr().add(i).read());
+
+            i += 1;
+        }
+    }
+
+    output
 }
 
 impl<T, const LEN: usize> fmt::Debug for Vec<T, LEN>
