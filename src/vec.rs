@@ -62,6 +62,31 @@ impl<T, const LEN: usize> Vec<T, LEN> {
     /// Remainder of elements that cannot fit into SIMD vectors.
     pub const REMAINDER: usize = LEN % (Self::VECTORS * Self::LANES);
 
+    /// Gets the length of this vector.
+    pub const fn len(&self) -> usize {
+        LEN
+    }
+
+    /// Returns true if this vector has a length of 0.
+    pub const fn is_empty(&self) -> bool {
+        LEN == 0
+    }
+
+    /// Gets the number of lanes for SIMD operations.
+    pub const fn lanes(&self) -> usize {
+        Self::LANES
+    }
+
+    /// Gets the number of SIMD vectors needed for this vector.
+    pub const fn vectors(&self) -> usize {
+        Self::VECTORS
+    }
+
+    /// Gets the remainder of elements that cannot fit into SIMD vectors.
+    pub const fn remainder(&self) -> usize {
+        Self::REMAINDER
+    }
+
     /// Pointer to the first element
     #[inline]
     pub const fn as_ptr(&self) -> *const T {
