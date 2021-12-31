@@ -10,4 +10,8 @@ fn main() {
     println!("{:?}", vec * vec);
     println!("{:?}", vec % vec);
     println!("{:?}", vec - vec);
+
+    let vec = Vec::from_array([1_u32, 2, 3]);
+
+    println!("{:?}", vec + vec);
 }

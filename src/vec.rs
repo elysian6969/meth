@@ -63,13 +63,9 @@ impl<T, const LEN: usize> Vec<T, LEN> {
     pub const REMAINDER: usize = LEN % (Self::VECTORS * Self::LANES);
 
     /// Gets the length of this vector.
+    #[allow(clippy::len_without_is_empty)]
     pub const fn len(&self) -> usize {
         LEN
-    }
-
-    /// Returns true if this vector has a length of 0.
-    pub const fn is_empty(&self) -> bool {
-        LEN == 0
     }
 
     /// Gets the number of lanes for SIMD operations.
