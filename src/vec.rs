@@ -11,10 +11,10 @@ mod lanes;
 #[repr(C)]
 pub struct Vec<T, const LEN: usize>([T; LEN]);
 
-#[derive(Debug)]
-pub struct Split<T, const LANES: usize, const VECTORS: usize, const REMAINDER: usize> {
+/// Helper type for splitting into SIMD vectors and remainder.
+struct Split<T, const LANES: usize, const VECTORS: usize, const REMAINDER: usize> {
     pub vectors: [Simd<T, LANES>; VECTORS],
-    pub remainder: [T; VECTORS],
+    pub remainder: [T; REMAINDER],
 }
 
 impl<T, const LANES: usize, const VECTORS: usize, const REMAINDER: usize>
@@ -144,12 +144,20 @@ impl<T, const LEN: usize> Vec<T, LEN> {
     }
 
     #[inline]
-    pub const fn to_simd(self) -> Split<T, { Self::LANES }, { Self::VECTORS }, { Self::REMAINDER }>
+    pub const fn to_simd(
+        self,
+    ) -> (
+        [Simd<T, { Self::LANES }>; Self::VECTORS],
+        [T; Self::REMAINDER],
+    )
     where
         T: ~const Copy,
         T: ~const Element,
     {
-        Split::new(self.as_ptr())
+        let Split { vectors, remainder } =
+            Split::<T, { Self::LANES }, { Self::VECTORS }, { Self::REMAINDER }>::new(self.as_ptr());
+
+        (vectors, remainder)
     }
 }
 
