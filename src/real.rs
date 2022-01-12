@@ -1,4 +1,4 @@
-use self::sealed::Sealed;
+pub(crate) use self::sealed::Sealed;
 
 mod sealed;
 
@@ -144,17 +144,17 @@ pub trait Real: Sealed {
 
 impl const Real for f32 {
     const DIGITS: u32 = core::f32::DIGITS;
-    const EPSILON: Self = core::f32::EPSILON;
-    const INFINITY: Self = core::f32::INFINITY;
+    const EPSILON: f32 = core::f32::EPSILON;
+    const INFINITY: f32 = core::f32::INFINITY;
     const MANTISSA_DIGITS: u32 = core::f32::MANTISSA_DIGITS;
-    const MAX: Self = core::f32::MAX;
+    const MAX: f32 = core::f32::MAX;
     const MAX_10_EXP: i32 = core::f32::MAX_10_EXP;
     const MAX_EXP: i32 = core::f32::MAX_EXP;
-    const MIN: Self = core::f32::MIN;
+    const MIN: f32 = core::f32::MIN;
     const MIN_10_EXP: i32 = core::f32::MIN_10_EXP;
     const MIN_EXP: i32 = core::f32::MIN_EXP;
-    const NAN: Self = core::f32::NAN;
-    const NEG_INFINITY: Self = core::f32::NEG_INFINITY;
+    const NAN: f32 = core::f32::NAN;
+    const NEG_INFINITY: f32 = core::f32::NEG_INFINITY;
 
     const E: f32 = ::core::f32::consts::E;
     const FRAC_1_PI: f32 = ::core::f32::consts::FRAC_1_PI;
@@ -172,27 +172,27 @@ impl const Real for f32 {
     const LOG2_E: f32 = ::core::f32::consts::LOG2_E;
     const LOG10_2: f32 = ::core::f32::consts::LOG10_2;
     const LOG10_E: f32 = ::core::f32::consts::LOG10_E;
-    const PI: f32 = ::core::f32::consts::PI;
+    const PI: f32 = <Self as Sealed>::_PI;
     const SQRT_2: f32 = ::core::f32::consts::SQRT_2;
     const TAU: f32 = ::core::f32::consts::TAU;
 
     #[inline]
-    fn abs(self) -> Self {
+    fn abs(self) -> f32 {
         libm::fabsf(self)
     }
 
     #[inline]
-    fn asin(self) -> Self {
+    fn asin(self) -> f32 {
         libm::asinf(self)
     }
 
     #[inline]
-    fn atan2(self, other: Self) -> Self {
+    fn atan2(self, other: f32) -> f32 {
         libm::atan2f(self, other)
     }
 
     #[must_use]
-    fn clamp(self, min: Self, max: Self) -> Self {
+    fn clamp(self, min: f32, max: f32) -> f32 {
         let mut x = self;
 
         if x < min {
@@ -207,64 +207,59 @@ impl const Real for f32 {
     }
 
     #[inline]
-    fn copysign(self, sign: Self) -> Self {
+    fn copysign(self, sign: f32) -> f32 {
         libm::copysignf(self, sign)
     }
 
     #[inline]
-    fn cos(self) -> Self {
+    fn cos(self) -> f32 {
         libm::cosf(self)
     }
 
     #[must_use]
-    fn max(self, other: Self) -> Self {
+    fn max(self, other: f32) -> f32 {
         libm::fmaxf(self, other)
     }
 
     #[must_use]
-    fn min(self, other: Self) -> Self {
+    fn min(self, other: f32) -> f32 {
         libm::fminf(self, other)
     }
 
     #[inline]
-    fn sin(self) -> Self {
+    fn sin(self) -> f32 {
         libm::sinf(self)
     }
 
     #[inline]
-    fn sin_cos(self) -> (Self, Self) {
+    fn sin_cos(self) -> (f32, f32) {
         libm::sincosf(self)
     }
 
-    #[allow(clippy::excessive_precision)]
     #[inline]
-    fn to_degrees(self) -> Self {
-        const PIS_IN_180: f32 = 57.2957795130823208767981548141051703_f32;
-
-        self * PIS_IN_180
+    fn to_degrees(self) -> f32 {
+        self * <f32 as Sealed>::_180_PI
     }
 
     #[inline]
-    fn to_radians(self) -> Self {
-        const PI_180: f32 = <f32 as Real>::PI / 180.0;
-
-        self * PI_180
+    fn to_radians(self) -> f32 {
+        self * <f32 as Sealed>::_PI_180
     }
 }
 
 impl const Real for f64 {
     const DIGITS: u32 = f64::DIGITS;
-    const EPSILON: Self = f64::EPSILON;
-    const INFINITY: Self = f64::INFINITY;
+    const EPSILON: f64 = f64::EPSILON;
+    const INFINITY: f64 = f64::INFINITY;
     const MANTISSA_DIGITS: u32 = f64::MANTISSA_DIGITS;
-    const MAX: Self = f64::MAX;
+    const MAX: f64 = f64::MAX;
     const MAX_10_EXP: i32 = f64::MAX_10_EXP;
     const MAX_EXP: i32 = f64::MAX_EXP;
-    const MIN: Self = f64::MIN;
+    const MIN: f64 = f64::MIN;
     const MIN_10_EXP: i32 = f64::MIN_10_EXP;
     const MIN_EXP: i32 = f64::MIN_EXP;
-    const NAN: Self = f64::NAN;
-    const NEG_INFINITY: Self = f64::NEG_INFINITY;
+    const NAN: f64 = f64::NAN;
+    const NEG_INFINITY: f64 = f64::NEG_INFINITY;
 
     const E: f64 = ::core::f64::consts::E;
     const FRAC_1_PI: f64 = ::core::f64::consts::FRAC_1_PI;
@@ -282,27 +277,27 @@ impl const Real for f64 {
     const LOG2_E: f64 = ::core::f64::consts::LOG2_E;
     const LOG10_2: f64 = ::core::f64::consts::LOG10_2;
     const LOG10_E: f64 = ::core::f64::consts::LOG10_E;
-    const PI: f64 = ::core::f64::consts::PI;
+    const PI: f64 = <Self as Sealed>::_PI;
     const SQRT_2: f64 = ::core::f64::consts::SQRT_2;
     const TAU: f64 = ::core::f64::consts::TAU;
 
     #[inline]
-    fn abs(self) -> Self {
+    fn abs(self) -> f64 {
         libm::fabs(self)
     }
 
     #[inline]
-    fn asin(self) -> Self {
+    fn asin(self) -> f64 {
         libm::asin(self)
     }
 
     #[inline]
-    fn atan2(self, other: Self) -> Self {
+    fn atan2(self, other: f64) -> f64 {
         libm::atan2(self, other)
     }
 
     #[must_use]
-    fn clamp(self, min: Self, max: Self) -> Self {
+    fn clamp(self, min: f64, max: f64) -> f64 {
         let mut x = self;
 
         if x < min {
@@ -317,46 +312,42 @@ impl const Real for f64 {
     }
 
     #[inline]
-    fn copysign(self, sign: Self) -> Self {
+    fn copysign(self, sign: f64) -> f64 {
         libm::copysign(self, sign)
     }
 
     #[inline]
-    fn cos(self) -> Self {
+    fn cos(self) -> f64 {
         libm::cos(self)
     }
 
     #[must_use]
-    fn max(self, other: Self) -> Self {
+    fn max(self, other: f64) -> f64 {
         libm::fmax(self, other)
     }
 
     #[must_use]
-    fn min(self, other: Self) -> Self {
+    fn min(self, other: f64) -> f64 {
         libm::fmin(self, other)
     }
 
     #[inline]
-    fn sin(self) -> Self {
+    fn sin(self) -> f64 {
         libm::sin(self)
     }
 
     #[inline]
-    fn sin_cos(self) -> (Self, Self) {
+    fn sin_cos(self) -> (f64, f64) {
         libm::sincos(self)
     }
 
     #[inline]
-    fn to_degrees(self) -> Self {
-        const F64_180_PI: f64 = 180.0 / <f64 as Real>::PI;
-
-        self * F64_180_PI
+    fn to_degrees(self) -> f64 {
+        self * <f64 as Sealed>::_180_PI
     }
 
     #[inline]
-    fn to_radians(self) -> Self {
-        const F64_PI_180: f64 = <f64 as Real>::PI / 180.0;
-
-        self * F64_PI_180
+    fn to_radians(self) -> f64 {
+        self * <f64 as Sealed>::_PI_180
     }
 }

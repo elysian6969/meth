@@ -1,5 +1,6 @@
 use crate::identity::{One, Zero};
 use crate::ops::Simd;
+use crate::Real;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Sub, SubAssign};
 use core::{fmt, ptr};
 
@@ -227,8 +228,39 @@ impl<T, const LEN: usize> Vec<T, LEN> {
 
         (vectors, remainder)
     }
+
+    #[inline]
+    pub const fn to_degrees(self) -> Self
+    where
+        T: ~const Copy,
+        T: ~const Element,
+        T: ~const Real,
+        T: ~const Mul<Output = T>,
+        Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+        [(); Vec::<T, LEN>::LANES]:,
+        [(); Vec::<T, LEN>::VECTORS]:,
+        [(); Vec::<T, LEN>::REMAINDER]:,
+    {
+        self * <T as crate::real::Sealed>::_180_PI
+    }
+
+    #[inline]
+    pub const fn to_radians(self) -> Self
+    where
+        T: ~const Copy,
+        T: ~const Element,
+        T: ~const Real,
+        T: ~const Mul<Output = T>,
+        Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+        [(); Vec::<T, LEN>::LANES]:,
+        [(); Vec::<T, LEN>::VECTORS]:,
+        [(); Vec::<T, LEN>::REMAINDER]:,
+    {
+        self * <T as crate::real::Sealed>::_PI_180
+    }
 }
 
+// Vec<T, LEN> and Vec<T, LEN> operations.
 impl<T, const LEN: usize> const Add<Vec<T, LEN>> for Vec<T, LEN>
 where
     T: ~const Copy,
@@ -396,6 +428,177 @@ where
     #[inline]
     fn sub_assign(&mut self, other: Vec<T, LEN>) {
         *self = *self - other;
+    }
+}
+
+// Vec<T, LEN> and T operations.
+impl<T, const LEN: usize> const Add<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Add<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    #[inline]
+    fn add(self, element: T) -> Vec<T, LEN> {
+        self + Self::splat(element)
+    }
+}
+
+impl<T, const LEN: usize> const AddAssign<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Add<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    #[inline]
+    fn add_assign(&mut self, element: T) {
+        *self = *self + element;
+    }
+}
+
+impl<T, const LEN: usize> const Div<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Div<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    #[inline]
+    fn div(self, element: T) -> Vec<T, LEN> {
+        self / Self::splat(element)
+    }
+}
+
+impl<T, const LEN: usize> const DivAssign<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Div<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    #[inline]
+    fn div_assign(&mut self, element: T) {
+        *self = *self / element;
+    }
+}
+
+impl<T, const LEN: usize> const Mul<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Mul<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    #[inline]
+    fn mul(self, element: T) -> Vec<T, LEN> {
+        self * Self::splat(element)
+    }
+}
+
+impl<T, const LEN: usize> const MulAssign<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Mul<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    #[inline]
+    fn mul_assign(&mut self, element: T) {
+        *self = *self * element;
+    }
+}
+
+impl<T, const LEN: usize> const Rem<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Rem<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    #[inline]
+    fn rem(self, element: T) -> Vec<T, LEN> {
+        self % Self::splat(element)
+    }
+}
+
+impl<T, const LEN: usize> const RemAssign<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Rem<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    #[inline]
+    fn rem_assign(&mut self, element: T) {
+        *self = *self % element;
+    }
+}
+
+impl<T, const LEN: usize> const Sub<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Sub<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    type Output = Vec<T, LEN>;
+
+    #[inline]
+    fn sub(self, element: T) -> Vec<T, LEN> {
+        self - Self::splat(element)
+    }
+}
+
+impl<T, const LEN: usize> const SubAssign<T> for Vec<T, LEN>
+where
+    T: ~const Copy,
+    T: ~const Element,
+    T: ~const Sub<Output = T>,
+    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
+    [(); Vec::<T, LEN>::LANES]:,
+    [(); Vec::<T, LEN>::VECTORS]:,
+    [(); Vec::<T, LEN>::REMAINDER]:,
+{
+    #[inline]
+    fn sub_assign(&mut self, element: T) {
+        *self = *self - element;
     }
 }
 

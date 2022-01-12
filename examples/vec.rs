@@ -1,6 +1,6 @@
 #![feature(const_trait_impl)]
 
-use meth::Vec;
+use meth::{Real, Vec};
 
 fn main() {
     let vec = Vec::from_array([
@@ -30,4 +30,16 @@ fn main() {
     println!("vec * vec = {:?}", CONSTS[2]);
     println!("vec % vec = {:?}", CONSTS[3]);
     println!("vec - vec = {:?}", CONSTS[4]);
+
+    println!(
+        "vec.to_degrees = {:?}",
+        Vec::from_array([
+            <f32 as Real>::PI * 0.0,
+            <f32 as Real>::PI * 0.5,
+            <f32 as Real>::PI * 1.0,
+            <f32 as Real>::PI * 1.5,
+            <f32 as Real>::PI * 2.0,
+        ])
+        .to_degrees(),
+    );
 }
