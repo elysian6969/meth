@@ -160,7 +160,6 @@ where
     #[inline]
     pub fn simd_add<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
     where
-        T: Copy,
         T: Element,
         T: Add<Output = T>,
         Lanes<LANES>: SupportedLanes,
@@ -212,7 +211,6 @@ where
     #[inline]
     pub fn simd_div<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
     where
-        T: Copy,
         T: Element,
         T: Div<Output = T>,
         Lanes<LANES>: SupportedLanes,
@@ -264,7 +262,6 @@ where
     #[inline]
     pub fn simd_mul<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
     where
-        T: Copy,
         T: Element,
         T: Mul<Output = T>,
         Lanes<LANES>: SupportedLanes,
@@ -316,7 +313,6 @@ where
     #[inline]
     pub fn simd_rem<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
     where
-        T: Copy,
         T: Element,
         T: Rem<Output = T>,
         Lanes<LANES>: SupportedLanes,
@@ -368,7 +364,6 @@ where
     #[inline]
     pub fn simd_sub<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
     where
-        T: Copy,
         T: Element,
         T: Sub<Output = T>,
         Lanes<LANES>: SupportedLanes,
