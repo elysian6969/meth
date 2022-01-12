@@ -17,22 +17,21 @@
 #![feature(platform_intrinsics)]
 #![feature(portable_simd)]
 #![feature(repr_simd)]
+#![no_std]
 
 pub use self::euler_angles::EulerAngles;
 pub use self::matrix::Matrix;
-pub use self::one::One;
 pub use self::quaternion::Quaternion;
 pub use self::real::Real;
 pub use self::vec::{Element, Lanes, SupportedLanes, Vec};
-pub use self::zero::Zero;
 
 mod euler_angles;
 mod matrix;
-mod one;
 mod ops;
 mod quaternion;
 mod real;
 mod vec;
-mod zero;
+
+pub mod identity;
 
 pub(crate) mod mem;

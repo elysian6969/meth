@@ -19,6 +19,7 @@ mod sealed {
 
 use self::sealed::Sealed;
 
+/// SIMD-able types.
 pub trait Element: Sealed {}
 
 impl const Element for i8 {}

@@ -4,8 +4,10 @@ mod sealed {
 
 use self::sealed::Sealed;
 
+/// SIMD lane count.
 pub struct Lanes<const LANES: usize>;
 
+/// SIMD-able lanes.
 pub trait SupportedLanes: Sealed {}
 
 impl<const LANES: usize> const Sealed for Lanes<LANES> {}

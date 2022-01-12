@@ -1,4 +1,5 @@
-use crate::{EulerAngles, One, Real, Zero};
+use crate::identity::{One, Zero};
+use crate::{EulerAngles, Real};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Quaternion<T> {
