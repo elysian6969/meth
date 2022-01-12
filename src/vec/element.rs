@@ -1,5 +1,5 @@
 mod sealed {
-    pub trait Sealed: Sized {}
+    pub trait Sealed: Copy + Sized {}
 
     impl const Sealed for i8 {}
     impl const Sealed for i16 {}
