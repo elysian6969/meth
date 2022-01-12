@@ -15,29 +15,6 @@ mod lanes;
 #[repr(C)]
 pub struct Vec<T, const LEN: usize>([T; LEN]);
 
-/// Helper type for splitting into SIMD vectors and remainder.
-struct Split<T, const LANES: usize, const VECTORS: usize, const REMAINDER: usize> {
-    pub vectors: [Simd<T, LANES>; VECTORS],
-    pub remainder: [T; REMAINDER],
-}
-
-impl<T, const LANES: usize, const VECTORS: usize, const REMAINDER: usize>
-    Split<T, LANES, VECTORS, REMAINDER>
-{
-    #[inline]
-    pub const fn new(ptr: *const T) -> Self {
-        let mut vectors = crate::mem::uninit_array();
-        let mut remainder = crate::mem::uninit_array();
-
-        unsafe {
-            ptr::copy_nonoverlapping(ptr, vectors.as_mut_ptr() as *mut T, VECTORS * LANES);
-            ptr::copy_nonoverlapping(ptr.add(VECTORS * LANES), remainder.as_mut_ptr(), REMAINDER);
-        }
-
-        Self { vectors, remainder }
-    }
-}
-
 #[inline]
 const fn deduce_lanes(len: usize) -> usize {
     if len.is_power_of_two() {
@@ -147,12 +124,14 @@ impl<T, const LEN: usize> Vec<T, LEN> {
 
     /// Converts an array to a vector.
     #[inline]
-    pub const fn from_array(array: [T; LEN]) -> Self {
+    #[must_use]
+    pub const fn from_array(array: [T; LEN]) -> Vec<T, LEN> {
         Self(array)
     }
 
     /// Converts a vector to an array.
     #[inline]
+    #[must_use]
     pub const fn to_array(self) -> [T; LEN]
     where
         T: ~const Copy,
@@ -162,7 +141,8 @@ impl<T, const LEN: usize> Vec<T, LEN> {
 
     /// Create a new vector from a slice.
     #[inline]
-    pub const fn from_slice(slice: &[T]) -> Self {
+    #[must_use]
+    pub const fn from_slice(slice: &[T]) -> Vec<T, LEN> {
         assert!(
             slice.len() >= LEN,
             "slice length must be at least the number of lanes"
@@ -179,6 +159,7 @@ impl<T, const LEN: usize> Vec<T, LEN> {
 
     /// Creates a new vector with all elements set to the given value.
     #[inline]
+    #[must_use]
     pub const fn splat(value: T) -> Vec<T, LEN>
     where
         T: ~const Copy,
@@ -188,6 +169,7 @@ impl<T, const LEN: usize> Vec<T, LEN> {
 
     /// Creates a new vector with all elements set to zero.
     #[inline]
+    #[must_use]
     pub const fn zero() -> Vec<T, LEN>
     where
         T: ~const Copy,
@@ -198,6 +180,7 @@ impl<T, const LEN: usize> Vec<T, LEN> {
 
     /// Creates a new vector with all elements set to one.
     #[inline]
+    #[must_use]
     pub const fn one() -> Vec<T, LEN>
     where
         T: ~const Copy,
@@ -208,11 +191,13 @@ impl<T, const LEN: usize> Vec<T, LEN> {
 
     /// Create a new vector from uninitialized bytes.
     #[inline]
+    #[must_use]
     pub const fn uninit() -> Vec<T, LEN> {
         Self(crate::mem::uninit_array())
     }
 
     #[inline]
+    #[must_use]
     pub(crate) const fn to_simd(
         self,
     ) -> (
@@ -223,14 +208,30 @@ impl<T, const LEN: usize> Vec<T, LEN> {
         T: ~const Copy,
         T: ~const Element,
     {
-        let Split { vectors, remainder } =
-            Split::<T, { Self::LANES }, { Self::VECTORS }, { Self::REMAINDER }>::new(self.as_ptr());
+        let ptr = self.as_ptr();
+        let mut vectors = crate::mem::uninit_array();
+        let mut remainder = crate::mem::uninit_array();
+
+        unsafe {
+            ptr::copy_nonoverlapping(
+                ptr,
+                vectors.as_mut_ptr() as *mut T,
+                Self::VECTORS * Self::LANES,
+            );
+
+            ptr::copy_nonoverlapping(
+                ptr.add(Self::VECTORS * Self::LANES),
+                remainder.as_mut_ptr(),
+                Self::REMAINDER,
+            );
+        }
 
         (vectors, remainder)
     }
 
     #[inline]
-    pub const fn to_degrees(self) -> Self
+    #[must_use]
+    pub const fn to_degrees(self) -> Vec<T, LEN>
     where
         T: ~const Copy,
         T: ~const Element,
@@ -245,7 +246,8 @@ impl<T, const LEN: usize> Vec<T, LEN> {
     }
 
     #[inline]
-    pub const fn to_radians(self) -> Self
+    #[must_use]
+    pub const fn to_radians(self) -> Vec<T, LEN>
     where
         T: ~const Copy,
         T: ~const Element,
@@ -274,6 +276,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn add(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
         vec_add(self, other)
     }
@@ -308,6 +311,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn div(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
         vec_div(self, other)
     }
@@ -342,6 +346,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn mul(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
         vec_mul(self, other)
     }
@@ -376,6 +381,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn rem(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
         vec_rem(self, other)
     }
@@ -410,6 +416,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn sub(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
         vec_sub(self, other)
     }
@@ -445,6 +452,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn add(self, element: T) -> Vec<T, LEN> {
         self + Self::splat(element)
     }
@@ -479,6 +487,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn div(self, element: T) -> Vec<T, LEN> {
         self / Self::splat(element)
     }
@@ -513,6 +522,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn mul(self, element: T) -> Vec<T, LEN> {
         self * Self::splat(element)
     }
@@ -547,6 +557,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn rem(self, element: T) -> Vec<T, LEN> {
         self % Self::splat(element)
     }
@@ -581,6 +592,7 @@ where
     type Output = Vec<T, LEN>;
 
     #[inline]
+    #[must_use]
     fn sub(self, element: T) -> Vec<T, LEN> {
         self - Self::splat(element)
     }
@@ -604,6 +616,7 @@ where
 
 /// Add two vectors.
 #[inline]
+#[must_use]
 pub const fn vec_add<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
 where
     T: ~const Copy,
@@ -646,6 +659,7 @@ where
 
 /// Divide two vectors.
 #[inline]
+#[must_use]
 pub const fn vec_div<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
 where
     T: ~const Copy,
@@ -688,6 +702,7 @@ where
 
 /// Multiply two vectors.
 #[inline]
+#[must_use]
 pub const fn vec_mul<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
 where
     T: ~const Copy,
@@ -730,6 +745,7 @@ where
 
 /// Remainder two vectors.
 #[inline]
+#[must_use]
 pub const fn vec_rem<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
 where
     T: ~const Copy,
@@ -772,6 +788,7 @@ where
 
 /// Subtract two vectors.
 #[inline]
+#[must_use]
 pub const fn vec_sub<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
 where
     T: ~const Copy,
