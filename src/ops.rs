@@ -55,7 +55,6 @@ impl<T, const LANES: usize> Simd<T, LANES> {
 
 impl<T, const LANES: usize> const Add<Simd<T, LANES>> for Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Add<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -70,7 +69,6 @@ where
 
 impl<T, const LANES: usize> const Div<Simd<T, LANES>> for Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Div<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -85,7 +83,6 @@ where
 
 impl<T, const LANES: usize> const Mul<Simd<T, LANES>> for Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Mul<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -100,7 +97,6 @@ where
 
 impl<T, const LANES: usize> const Rem<Simd<T, LANES>> for Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Rem<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -115,7 +111,6 @@ where
 
 impl<T, const LANES: usize> const Sub<Simd<T, LANES>> for Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Sub<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -132,7 +127,6 @@ where
 #[inline]
 pub const fn simd_add<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Add<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -144,7 +138,6 @@ where
         b: Simd<T, LANES>,
     ) -> Simd<T, LANES>
     where
-        T: ~const Copy,
         T: ~const Element,
         T: ~const Add<Output = T>,
         Lanes<LANES>: ~const SupportedLanes,
@@ -186,7 +179,6 @@ where
 #[inline]
 pub const fn simd_div<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Div<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -198,7 +190,6 @@ where
         b: Simd<T, LANES>,
     ) -> Simd<T, LANES>
     where
-        T: ~const Copy,
         T: ~const Element,
         T: ~const Div<Output = T>,
         Lanes<LANES>: ~const SupportedLanes,
@@ -240,7 +231,6 @@ where
 #[inline]
 pub const fn simd_mul<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Mul<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -252,7 +242,6 @@ where
         b: Simd<T, LANES>,
     ) -> Simd<T, LANES>
     where
-        T: ~const Copy,
         T: ~const Element,
         T: ~const Mul<Output = T>,
         Lanes<LANES>: ~const SupportedLanes,
@@ -294,7 +283,6 @@ where
 #[inline]
 pub const fn simd_rem<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Rem<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -306,7 +294,6 @@ where
         b: Simd<T, LANES>,
     ) -> Simd<T, LANES>
     where
-        T: ~const Copy,
         T: ~const Element,
         T: ~const Rem<Output = T>,
         Lanes<LANES>: ~const SupportedLanes,
@@ -348,7 +335,6 @@ where
 #[inline]
 pub const fn simd_sub<T, const LANES: usize>(a: Simd<T, LANES>, b: Simd<T, LANES>) -> Simd<T, LANES>
 where
-    T: ~const Copy,
     T: ~const Element,
     T: ~const Sub<Output = T>,
     Lanes<LANES>: ~const SupportedLanes,
@@ -360,7 +346,6 @@ where
         b: Simd<T, LANES>,
     ) -> Simd<T, LANES>
     where
-        T: ~const Copy,
         T: ~const Element,
         T: ~const Sub<Output = T>,
         Lanes<LANES>: ~const SupportedLanes,
