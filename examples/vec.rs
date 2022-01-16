@@ -31,8 +31,13 @@ fn main() {
     println!("vec % vec = {:?}", CONSTS[3]);
     println!("vec - vec = {:?}", CONSTS[4]);
 
+    let vec = Vec::from_array([1_u32, 2, 3]);
+
+    println!("vec.product() = {:?}", vec.product());
+    println!("vec.sum() = {:?}", vec.sum());
+
     println!(
-        "vec.to_degrees = {:?}",
+        "vec.to_degrees() = {:?}",
         Vec::from_array([
             <f32 as Real>::PI * 0.0,
             <f32 as Real>::PI * 0.5,

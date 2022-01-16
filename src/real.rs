@@ -1,4 +1,4 @@
-pub(crate) use self::sealed::Sealed;
+pub(crate) use sealed::Sealed;
 
 mod sealed;
 

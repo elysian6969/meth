@@ -1,73 +1,34 @@
 use crate::identity::{One, Zero};
-use crate::ops::Simd;
 use crate::Real;
+use core::mem::MaybeUninit;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Sub, SubAssign};
 use core::{fmt, ptr};
 
-pub use self::element::Element;
-pub use self::lanes::{Lanes, SupportedLanes};
+pub use element::Element;
+pub use iter::Iter;
+pub use iter_mut::IterMut;
+pub use lanes::{LaneCount, Lanes};
+
+mod add;
+mod div;
+mod mul;
+mod rem;
+mod sub;
+
+mod product;
+mod sum;
 
 mod element;
+mod iter;
+mod iter_mut;
 mod lanes;
 
 /// Generic arbitary length vector.
 #[derive(Clone, Copy)]
 #[repr(C)]
-pub struct Vec<T, const LEN: usize>([T; LEN]);
+pub struct Vec<T, const N: usize>([T; N]);
 
-#[inline]
-const fn deduce_lanes(len: usize) -> usize {
-    if len.is_power_of_two() {
-        return len;
-    }
-
-    let lanes = len.next_power_of_two() >> 1;
-
-    if lanes > 8 {
-        8
-    } else {
-        lanes
-    }
-}
-
-impl<T, const LEN: usize> Vec<T, LEN> {
-    /// Length of this vector.
-    pub const LEN: usize = LEN;
-
-    /// Number of lanes for SIMD operations.
-    pub const LANES: usize = deduce_lanes(LEN);
-
-    /// Number of SIMD vectors needed for this vector.
-    pub const VECTORS: usize = LEN / Self::LANES;
-
-    /// Remainder of elements that cannot fit into SIMD vectors.
-    pub const REMAINDER: usize = LEN % (Self::VECTORS * Self::LANES);
-
-    /// Returns the length of this vector.
-    #[allow(clippy::len_without_is_empty)]
-    #[inline]
-    pub const fn len(&self) -> usize {
-        LEN
-    }
-
-    /// Returns the number of lanes for SIMD operations.
-    #[inline]
-    pub const fn lanes(&self) -> usize {
-        Self::LANES
-    }
-
-    /// Returns the number of SIMD vectors needed for this vector.
-    #[inline]
-    pub const fn vectors(&self) -> usize {
-        Self::VECTORS
-    }
-
-    /// Returns the remainder of elements that cannot fit into SIMD vectors.
-    #[inline]
-    pub const fn remainder(&self) -> usize {
-        Self::REMAINDER
-    }
-
+impl<T, const N: usize> Vec<T, N> {
     /// Pointer to the first element
     #[inline]
     pub const fn as_ptr(&self) -> *const T {
@@ -80,59 +41,29 @@ impl<T, const LEN: usize> Vec<T, LEN> {
         self.0.as_mut_ptr()
     }
 
-    #[allow(dead_code)]
-    #[inline]
-    pub(crate) const fn as_vector_ptr(&self) -> *const Simd<T, { Self::LANES }> {
-        self.as_ptr() as *const Simd<T, { Self::LANES }>
-    }
-
-    #[inline]
-    pub(crate) const fn as_vector_mut_ptr(&mut self) -> *mut Simd<T, { Self::LANES }> {
-        self.as_mut_ptr() as *mut Simd<T, { Self::LANES }>
-    }
-
-    #[allow(dead_code)]
-    #[inline]
-    pub(crate) const fn as_remainder_ptr(&self) -> *const T
-    where
-        [(); Self::LANES]:,
-    {
-        // SAFETY: It's a valid offset.
-        unsafe { self.as_vector_ptr().add(Self::VECTORS) as *const T }
-    }
-
-    #[inline]
-    pub(crate) const fn as_remainder_mut_ptr(&mut self) -> *mut T
-    where
-        [(); Self::LANES]:,
-    {
-        // SAFETY: It's a valid offset.
-        unsafe { self.as_vector_mut_ptr().add(Self::VECTORS) as *mut T }
-    }
-
     /// Returns an array reference containing the entire vector.
     #[inline]
-    pub const fn as_array(&self) -> &[T; LEN] {
+    pub const fn as_array(&self) -> &[T; N] {
         &self.0
     }
 
     /// Returns a mutable array reference containing the entire vector.
     #[inline]
-    pub const fn as_mut_array(&mut self) -> &mut [T; LEN] {
+    pub const fn as_mut_array(&mut self) -> &mut [T; N] {
         &mut self.0
     }
 
     /// Converts an array to a vector.
     #[inline]
     #[must_use]
-    pub const fn from_array(array: [T; LEN]) -> Vec<T, LEN> {
+    pub const fn from_array(array: [T; N]) -> Vec<T, N> {
         Self(array)
     }
 
     /// Converts a vector to an array.
     #[inline]
     #[must_use]
-    pub const fn to_array(self) -> [T; LEN]
+    pub const fn to_array(self) -> [T; N]
     where
         T: Copy,
     {
@@ -142,35 +73,45 @@ impl<T, const LEN: usize> Vec<T, LEN> {
     /// Create a new vector from a slice.
     #[inline]
     #[must_use]
-    pub const fn from_slice(slice: &[T]) -> Vec<T, LEN> {
+    pub const fn from_slice(slice: &[T]) -> Vec<T, N> {
         assert!(
-            slice.len() >= LEN,
+            slice.len() >= N,
             "slice length must be at least the number of lanes"
         );
 
-        let mut vec = Vec::uninit();
+        let mut vec = MaybeUninit::<Vec<T, N>>::uninit();
 
         unsafe {
-            ptr::copy_nonoverlapping(slice.as_ptr(), vec.as_mut_ptr(), LEN);
-        }
+            ptr::copy_nonoverlapping(slice.as_ptr(), vec.as_mut_ptr() as *mut T, N);
 
-        vec
+            vec.assume_init()
+        }
+    }
+
+    #[inline]
+    pub const fn len(&self) -> usize {
+        N
+    }
+
+    #[inline]
+    pub const fn is_empty(&self) -> bool {
+        N == 0
     }
 
     /// Creates a new vector with all elements set to the given value.
     #[inline]
     #[must_use]
-    pub const fn splat(value: T) -> Vec<T, LEN>
+    pub const fn splat(value: T) -> Vec<T, N>
     where
         T: Copy,
     {
-        Self([value; LEN])
+        Self([value; N])
     }
 
     /// Creates a new vector with all elements set to zero.
     #[inline]
     #[must_use]
-    pub const fn zero() -> Vec<T, LEN>
+    pub const fn zero() -> Vec<T, N>
     where
         T: Copy,
         T: ~const Zero,
@@ -181,7 +122,7 @@ impl<T, const LEN: usize> Vec<T, LEN> {
     /// Creates a new vector with all elements set to one.
     #[inline]
     #[must_use]
-    pub const fn one() -> Vec<T, LEN>
+    pub const fn one() -> Vec<T, N>
     where
         T: Copy,
         T: ~const One,
@@ -189,616 +130,266 @@ impl<T, const LEN: usize> Vec<T, LEN> {
         Self::splat(One::one())
     }
 
-    /// Create a new vector from uninitialized bytes.
     #[inline]
-    #[must_use]
-    pub const fn uninit() -> Vec<T, LEN> {
-        Self(crate::mem::uninit_array())
-    }
-
-    #[inline]
-    #[must_use]
-    pub(crate) const fn to_simd(
-        self,
-    ) -> (
-        [Simd<T, { Self::LANES }>; Self::VECTORS],
-        [T; Self::REMAINDER],
-    )
-    where
-        T: ~const Element,
-    {
-        let ptr = self.as_ptr();
-        let mut vectors = crate::mem::uninit_array();
-        let mut remainder = crate::mem::uninit_array();
-
-        unsafe {
-            ptr::copy_nonoverlapping(
-                ptr,
-                vectors.as_mut_ptr() as *mut T,
-                Self::VECTORS * Self::LANES,
-            );
-
-            ptr::copy_nonoverlapping(
-                ptr.add(Self::VECTORS * Self::LANES),
-                remainder.as_mut_ptr(),
-                Self::REMAINDER,
-            );
+    pub const fn get(&self, index: usize) -> Option<&T> {
+        if index >= self.len() {
+            None
+        } else {
+            Some(unsafe { self.get_unchecked(index) })
         }
+    }
 
-        (vectors, remainder)
+    #[inline]
+    pub const unsafe fn get_unchecked(&self, index: usize) -> &T {
+        &*self.0.as_ptr().add(index)
+    }
+
+    #[inline]
+    pub const fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        if index >= self.len() {
+            None
+        } else {
+            Some(unsafe { self.get_mut_unchecked(index) })
+        }
+    }
+
+    #[inline]
+    pub const unsafe fn get_mut_unchecked(&mut self, index: usize) -> &mut T {
+        &mut *self.0.as_mut_ptr().add(index)
+    }
+
+    #[inline]
+    pub const fn first(&self) -> Option<&T> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(unsafe { self.first_unchecked() })
+        }
+    }
+
+    #[inline]
+    pub const unsafe fn first_unchecked(&self) -> &T {
+        self.get_unchecked(0)
+    }
+
+    #[inline]
+    pub const fn last(&self) -> Option<&T> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(unsafe { self.last_unchecked() })
+        }
+    }
+
+    #[inline]
+    pub const unsafe fn last_unchecked(&self) -> &T {
+        self.get_unchecked(self.len().saturating_sub(1))
+    }
+
+    #[inline]
+    pub const fn iter(&self) -> Iter<'_, T, N> {
+        Iter::new(self)
+    }
+
+    #[inline]
+    pub const fn iter_mut(&mut self) -> IterMut<'_, T, N> {
+        IterMut::new(self)
+    }
+
+    #[inline]
+    pub const fn product(self) -> T
+    where
+        T: ~const Element,
+        T: ~const One,
+        T: ~const Mul<Output = T>,
+        Lanes<T, N>: LaneCount,
+        [(); Lanes::<T, N>::LANES]:,
+    {
+        product::product(self)
+    }
+
+    #[inline]
+    pub const fn sum(self) -> T
+    where
+        T: ~const Element,
+        T: ~const Zero,
+        T: ~const Add<Output = T>,
+        Lanes<T, N>: LaneCount,
+        [(); Lanes::<T, N>::LANES]:,
+    {
+        sum::sum(self)
     }
 
     #[inline]
     #[must_use]
-    pub const fn to_degrees(self) -> Vec<T, LEN>
+    pub const fn to_degrees(self) -> Vec<T, N>
     where
         T: ~const Element,
         T: ~const Real,
         T: ~const Mul<Output = T>,
-        Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-        [(); Vec::<T, LEN>::LANES]:,
-        [(); Vec::<T, LEN>::VECTORS]:,
-        [(); Vec::<T, LEN>::REMAINDER]:,
+        Lanes<T, N>: LaneCount,
+        [(); Lanes::<T, N>::LANES]:,
     {
-        self * <T as crate::real::Sealed>::_180_PI
+        self * Self::splat(<T as crate::real::Sealed>::_180_PI)
     }
 
     #[inline]
     #[must_use]
-    pub const fn to_radians(self) -> Vec<T, LEN>
+    pub const fn to_radians(self) -> Vec<T, N>
     where
         T: ~const Element,
         T: ~const Real,
         T: ~const Mul<Output = T>,
-        Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-        [(); Vec::<T, LEN>::LANES]:,
-        [(); Vec::<T, LEN>::VECTORS]:,
-        [(); Vec::<T, LEN>::REMAINDER]:,
+        Lanes<T, N>: LaneCount,
+        [(); Lanes::<T, N>::LANES]:,
     {
-        self * <T as crate::real::Sealed>::_PI_180
+        self * Self::splat(<T as crate::real::Sealed>::_PI_180)
     }
 }
 
-// Vec<T, LEN> and Vec<T, LEN> operations.
-impl<T, const LEN: usize> const Add<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const Add for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Add<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
-    type Output = Vec<T, LEN>;
+    type Output = Vec<T, N>;
 
     #[inline]
     #[must_use]
-    fn add(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
-        vec_add(self, other)
+    fn add(self, other: Vec<T, N>) -> Vec<T, N> {
+        add::add(self, other)
     }
 }
 
-impl<T, const LEN: usize> const AddAssign<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const AddAssign for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Add<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
     #[inline]
-    fn add_assign(&mut self, other: Vec<T, LEN>) {
+    fn add_assign(&mut self, other: Vec<T, N>) {
         *self = *self + other;
     }
 }
 
-impl<T, const LEN: usize> const Div<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const Div for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Div<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
-    type Output = Vec<T, LEN>;
+    type Output = Vec<T, N>;
 
     #[inline]
     #[must_use]
-    fn div(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
-        vec_div(self, other)
+    fn div(self, other: Vec<T, N>) -> Vec<T, N> {
+        div::div(self, other)
     }
 }
 
-impl<T, const LEN: usize> const DivAssign<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const DivAssign for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Div<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
     #[inline]
-    fn div_assign(&mut self, other: Vec<T, LEN>) {
+    fn div_assign(&mut self, other: Vec<T, N>) {
         *self = *self / other;
     }
 }
 
-impl<T, const LEN: usize> const Mul<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const Mul for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Mul<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
-    type Output = Vec<T, LEN>;
+    type Output = Vec<T, N>;
 
     #[inline]
     #[must_use]
-    fn mul(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
-        vec_mul(self, other)
+    fn mul(self, other: Vec<T, N>) -> Vec<T, N> {
+        mul::mul(self, other)
     }
 }
 
-impl<T, const LEN: usize> const MulAssign<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const MulAssign for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Mul<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
     #[inline]
-    fn mul_assign(&mut self, other: Vec<T, LEN>) {
+    fn mul_assign(&mut self, other: Vec<T, N>) {
         *self = *self * other;
     }
 }
 
-impl<T, const LEN: usize> const Rem<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const Rem for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Rem<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
-    type Output = Vec<T, LEN>;
+    type Output = Vec<T, N>;
 
     #[inline]
     #[must_use]
-    fn rem(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
-        vec_rem(self, other)
+    fn rem(self, other: Vec<T, N>) -> Vec<T, N> {
+        rem::rem(self, other)
     }
 }
 
-impl<T, const LEN: usize> const RemAssign<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const RemAssign for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Rem<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
     #[inline]
-    fn rem_assign(&mut self, other: Vec<T, LEN>) {
+    fn rem_assign(&mut self, other: Vec<T, N>) {
         *self = *self % other;
     }
 }
 
-impl<T, const LEN: usize> const Sub<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const Sub for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Sub<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
-    type Output = Vec<T, LEN>;
+    type Output = Vec<T, N>;
 
     #[inline]
     #[must_use]
-    fn sub(self, other: Vec<T, LEN>) -> Vec<T, LEN> {
-        vec_sub(self, other)
+    fn sub(self, other: Vec<T, N>) -> Vec<T, N> {
+        sub::sub(self, other)
     }
 }
 
-impl<T, const LEN: usize> const SubAssign<Vec<T, LEN>> for Vec<T, LEN>
+impl<T, const N: usize> const SubAssign for Vec<T, N>
 where
     T: ~const Element,
     T: ~const Sub<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
+    Lanes<T, N>: LaneCount,
+    [(); Lanes::<T, N>::LANES]:,
 {
     #[inline]
-    fn sub_assign(&mut self, other: Vec<T, LEN>) {
+    fn sub_assign(&mut self, other: Vec<T, N>) {
         *self = *self - other;
     }
-}
-
-// Vec<T, LEN> and T operations.
-impl<T, const LEN: usize> const Add<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Add<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    type Output = Vec<T, LEN>;
-
-    #[inline]
-    #[must_use]
-    fn add(self, element: T) -> Vec<T, LEN> {
-        self + Self::splat(element)
-    }
-}
-
-impl<T, const LEN: usize> const AddAssign<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Add<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    #[inline]
-    fn add_assign(&mut self, element: T) {
-        *self = *self + element;
-    }
-}
-
-impl<T, const LEN: usize> const Div<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Div<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    type Output = Vec<T, LEN>;
-
-    #[inline]
-    #[must_use]
-    fn div(self, element: T) -> Vec<T, LEN> {
-        self / Self::splat(element)
-    }
-}
-
-impl<T, const LEN: usize> const DivAssign<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Div<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    #[inline]
-    fn div_assign(&mut self, element: T) {
-        *self = *self / element;
-    }
-}
-
-impl<T, const LEN: usize> const Mul<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Mul<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    type Output = Vec<T, LEN>;
-
-    #[inline]
-    #[must_use]
-    fn mul(self, element: T) -> Vec<T, LEN> {
-        self * Self::splat(element)
-    }
-}
-
-impl<T, const LEN: usize> const MulAssign<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Mul<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    #[inline]
-    fn mul_assign(&mut self, element: T) {
-        *self = *self * element;
-    }
-}
-
-impl<T, const LEN: usize> const Rem<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Rem<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    type Output = Vec<T, LEN>;
-
-    #[inline]
-    #[must_use]
-    fn rem(self, element: T) -> Vec<T, LEN> {
-        self % Self::splat(element)
-    }
-}
-
-impl<T, const LEN: usize> const RemAssign<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Rem<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    #[inline]
-    fn rem_assign(&mut self, element: T) {
-        *self = *self % element;
-    }
-}
-
-impl<T, const LEN: usize> const Sub<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Sub<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    type Output = Vec<T, LEN>;
-
-    #[inline]
-    #[must_use]
-    fn sub(self, element: T) -> Vec<T, LEN> {
-        self - Self::splat(element)
-    }
-}
-
-impl<T, const LEN: usize> const SubAssign<T> for Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Sub<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    #[inline]
-    fn sub_assign(&mut self, element: T) {
-        *self = *self - element;
-    }
-}
-
-/// Add two vectors.
-#[inline]
-#[must_use]
-pub const fn vec_add<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Add<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    let (a_vectors, a_remainder) = a.to_simd();
-    let (b_vectors, b_remainder) = b.to_simd();
-    let mut output = Vec::<T, LEN>::uninit();
-    let mut i = 0;
-
-    unsafe {
-        while i < { Vec::<T, LEN>::VECTORS } {
-            output
-                .as_vector_mut_ptr()
-                .add(i)
-                .write(a_vectors.as_ptr().add(i).read() + b_vectors.as_ptr().add(i).read());
-
-            i += 1;
-        }
-
-        i = 0;
-
-        while i < { Vec::<T, LEN>::REMAINDER } {
-            output
-                .as_remainder_mut_ptr()
-                .add(i)
-                .write(a_remainder.as_ptr().add(i).read() + b_remainder.as_ptr().add(i).read());
-
-            i += 1;
-        }
-    }
-
-    output
-}
-
-/// Divide two vectors.
-#[inline]
-#[must_use]
-pub const fn vec_div<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Div<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    let (a_vectors, a_remainder) = a.to_simd();
-    let (b_vectors, b_remainder) = b.to_simd();
-    let mut output = Vec::<T, LEN>::uninit();
-    let mut i = 0;
-
-    unsafe {
-        while i < { Vec::<T, LEN>::VECTORS } {
-            output
-                .as_vector_mut_ptr()
-                .add(i)
-                .write(a_vectors.as_ptr().add(i).read() / b_vectors.as_ptr().add(i).read());
-
-            i += 1;
-        }
-
-        i = 0;
-
-        while i < { Vec::<T, LEN>::REMAINDER } {
-            output
-                .as_remainder_mut_ptr()
-                .add(i)
-                .write(a_remainder.as_ptr().add(i).read() / b_remainder.as_ptr().add(i).read());
-
-            i += 1;
-        }
-    }
-
-    output
-}
-
-/// Multiply two vectors.
-#[inline]
-#[must_use]
-pub const fn vec_mul<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Mul<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    let (a_vectors, a_remainder) = a.to_simd();
-    let (b_vectors, b_remainder) = b.to_simd();
-    let mut output = Vec::<T, LEN>::uninit();
-    let mut i = 0;
-
-    unsafe {
-        while i < { Vec::<T, LEN>::VECTORS } {
-            output
-                .as_vector_mut_ptr()
-                .add(i)
-                .write(a_vectors.as_ptr().add(i).read() * b_vectors.as_ptr().add(i).read());
-
-            i += 1;
-        }
-
-        i = 0;
-
-        while i < { Vec::<T, LEN>::REMAINDER } {
-            output
-                .as_remainder_mut_ptr()
-                .add(i)
-                .write(a_remainder.as_ptr().add(i).read() * b_remainder.as_ptr().add(i).read());
-
-            i += 1;
-        }
-    }
-
-    output
-}
-
-/// Remainder two vectors.
-#[inline]
-#[must_use]
-pub const fn vec_rem<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Rem<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    let (a_vectors, a_remainder) = a.to_simd();
-    let (b_vectors, b_remainder) = b.to_simd();
-    let mut output = Vec::<T, LEN>::uninit();
-    let mut i = 0;
-
-    unsafe {
-        while i < { Vec::<T, LEN>::VECTORS } {
-            output
-                .as_vector_mut_ptr()
-                .add(i)
-                .write(a_vectors.as_ptr().add(i).read() % b_vectors.as_ptr().add(i).read());
-
-            i += 1;
-        }
-
-        i = 0;
-
-        while i < { Vec::<T, LEN>::REMAINDER } {
-            output
-                .as_remainder_mut_ptr()
-                .add(i)
-                .write(a_remainder.as_ptr().add(i).read() % b_remainder.as_ptr().add(i).read());
-
-            i += 1;
-        }
-    }
-
-    output
-}
-
-/// Subtract two vectors.
-#[inline]
-#[must_use]
-pub const fn vec_sub<T, const LEN: usize>(a: Vec<T, LEN>, b: Vec<T, LEN>) -> Vec<T, LEN>
-where
-    T: ~const Element,
-    T: ~const Sub<Output = T>,
-    Lanes<{ Vec::<T, LEN>::LANES }>: SupportedLanes,
-    [(); Vec::<T, LEN>::LANES]:,
-    [(); Vec::<T, LEN>::VECTORS]:,
-    [(); Vec::<T, LEN>::REMAINDER]:,
-{
-    let (a_vectors, a_remainder) = a.to_simd();
-    let (b_vectors, b_remainder) = b.to_simd();
-    let mut output = Vec::<T, LEN>::uninit();
-    let mut i = 0;
-
-    unsafe {
-        while i < { Vec::<T, LEN>::VECTORS } {
-            output
-                .as_vector_mut_ptr()
-                .add(i)
-                .write(a_vectors.as_ptr().add(i).read() - b_vectors.as_ptr().add(i).read());
-
-            i += 1;
-        }
-
-        i = 0;
-
-        while i < { Vec::<T, LEN>::REMAINDER } {
-            output
-                .as_remainder_mut_ptr()
-                .add(i)
-                .write(a_remainder.as_ptr().add(i).read() - b_remainder.as_ptr().add(i).read());
-
-            i += 1;
-        }
-    }
-
-    output
 }
 
 impl<T, const LEN: usize> fmt::Debug for Vec<T, LEN>

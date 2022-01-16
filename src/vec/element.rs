@@ -1,38 +1,30 @@
 mod sealed {
     pub trait Sealed: Copy + Sized {}
-
-    impl const Sealed for i8 {}
-    impl const Sealed for i16 {}
-    impl const Sealed for i32 {}
-    impl const Sealed for i64 {}
-    impl const Sealed for isize {}
-
-    impl const Sealed for u8 {}
-    impl const Sealed for u16 {}
-    impl const Sealed for u32 {}
-    impl const Sealed for u64 {}
-    impl const Sealed for usize {}
-
-    impl const Sealed for f32 {}
-    impl const Sealed for f64 {}
 }
 
-use self::sealed::Sealed;
+use sealed::Sealed;
 
 /// SIMD-able types.
 pub trait Element: Sealed {}
 
-impl const Element for i8 {}
-impl const Element for i16 {}
-impl const Element for i32 {}
-impl const Element for i64 {}
-impl const Element for isize {}
+macro_rules! impl_element {
+    { $ty:ty } => {
+        impl const sealed::Sealed for $ty {}
+        impl const Element for $ty {}
+    }
+}
 
-impl const Element for u8 {}
-impl const Element for u16 {}
-impl const Element for u32 {}
-impl const Element for u64 {}
-impl const Element for usize {}
+impl_element! { i8 }
+impl_element! { i16 }
+impl_element! { i32 }
+impl_element! { i64 }
+impl_element! { isize }
 
-impl const Element for f32 {}
-impl const Element for f64 {}
+impl_element! { u8 }
+impl_element! { u16 }
+impl_element! { u32 }
+impl_element! { u64 }
+impl_element! { usize }
+
+impl_element! { f32 }
+impl_element! { f64 }

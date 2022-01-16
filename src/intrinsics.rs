@@ -1,84 +1,146 @@
-/// These intrinsics aren't linked directly from LLVM and are mostly undocumented, however they are
-/// simply lowered to the matching LLVM instructions by the compiler.  The associated instruction
-/// is documented alongside each intrinsic.
-extern "platform-intrinsic" {
-    /// add/fadd
-    pub fn simd_add<T>(x: T, y: T) -> T;
+use crate::identity::{One, Zero};
+use core::ops::{Add, Div, Mul, Rem, Sub};
 
-    /// sub/fsub
-    pub fn simd_sub<T>(x: T, y: T) -> T;
+#[derive(Clone, Copy, Debug)]
+#[repr(simd)]
+struct Simd<T, const N: usize>(pub [T; N]);
 
-    /// mul/fmul
-    pub fn simd_mul<T>(x: T, y: T) -> T;
+impl<T, const N: usize> Simd<T, N> {
+    /// Converts an array to a SIMD vector.
+    #[inline]
+    #[must_use]
+    pub const fn from_array(array: [T; N]) -> Self {
+        Self(array)
+    }
 
-    /// udiv/sdiv/fdiv
-    pub fn simd_div<T>(x: T, y: T) -> T;
+    /// Converts a SIMD vector to an array.
+    #[inline]
+    #[must_use]
+    pub const fn to_array(self) -> [T; N]
+    where
+        T: Copy,
+    {
+        self.0
+    }
+}
 
-    /// urem/srem/frem
-    pub fn simd_rem<T>(x: T, y: T) -> T;
+#[inline]
+#[must_use]
+pub unsafe fn simd_add<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
+where
+    T: Copy,
+    T: Add<Output = T>,
+{
+    extern "platform-intrinsic" {
+        fn simd_add<T>(a: T, b: T) -> T;
+    }
 
-    /// shl
-    pub fn simd_shl<T>(x: T, y: T) -> T;
+    let a = Simd::from_array(a);
+    let b = Simd::from_array(b);
 
-    /// lshr/ashr
-    pub fn simd_shr<T>(x: T, y: T) -> T;
+    simd_add(a, b).to_array()
+}
 
-    /// and
-    pub fn simd_and<T>(x: T, y: T) -> T;
+#[inline]
+#[must_use]
+pub unsafe fn simd_div<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
+where
+    T: Copy,
+    T: Div<Output = T>,
+{
+    extern "platform-intrinsic" {
+        fn simd_div<T>(a: T, b: T) -> T;
+    }
 
-    /// or
-    pub fn simd_or<T>(x: T, y: T) -> T;
+    let a = Simd::from_array(a);
+    let b = Simd::from_array(b);
 
-    /// xor
-    pub fn simd_xor<T>(x: T, y: T) -> T;
+    simd_div(a, b).to_array()
+}
 
-    /// fptoui/fptosi/uitofp/sitofp
-    pub fn simd_cast<T, U>(x: T) -> U;
+#[inline]
+#[must_use]
+pub unsafe fn simd_mul<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
+where
+    T: Copy,
+    T: Mul<Output = T>,
+{
+    extern "platform-intrinsic" {
+        fn simd_mul<T>(a: T, b: T) -> T;
+    }
 
-    /// neg/fneg
-    pub fn simd_neg<T>(x: T) -> T;
+    let a = Simd::from_array(a);
+    let b = Simd::from_array(b);
 
-    /// fabs
-    pub fn simd_fabs<T>(x: T) -> T;
+    simd_mul(a, b).to_array()
+}
 
-    pub fn simd_eq<T, U>(x: T, y: T) -> U;
-    pub fn simd_ne<T, U>(x: T, y: T) -> U;
-    pub fn simd_lt<T, U>(x: T, y: T) -> U;
-    pub fn simd_le<T, U>(x: T, y: T) -> U;
-    pub fn simd_gt<T, U>(x: T, y: T) -> U;
-    pub fn simd_ge<T, U>(x: T, y: T) -> U;
+#[inline]
+#[must_use]
+pub unsafe fn simd_rem<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
+where
+    T: Copy,
+    T: Rem<Output = T>,
+{
+    extern "platform-intrinsic" {
+        fn simd_rem<T>(a: T, b: T) -> T;
+    }
 
-    // shufflevector
-    pub fn simd_shuffle<T, U, V>(x: T, y: T, idx: U) -> V;
+    let a = Simd::from_array(a);
+    let b = Simd::from_array(b);
 
-    pub fn simd_gather<T, U, V>(val: T, ptr: U, mask: V) -> T;
-    pub fn simd_scatter<T, U, V>(val: T, ptr: U, mask: V);
+    simd_rem(a, b).to_array()
+}
 
-    // {s,u}add.sat
-    pub fn simd_saturating_add<T>(x: T, y: T) -> T;
+#[inline]
+#[must_use]
+pub unsafe fn simd_sub<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
+where
+    T: Copy,
+    T: Sub<Output = T>,
+{
+    extern "platform-intrinsic" {
+        fn simd_sub<T>(a: T, b: T) -> T;
+    }
 
-    // {s,u}sub.sat
-    pub fn simd_saturating_sub<T>(x: T, y: T) -> T;
+    let a = Simd::from_array(a);
+    let b = Simd::from_array(b);
 
-    // reductions
-    pub fn simd_reduce_add_ordered<T, U>(x: T, y: U) -> U;
-    pub fn simd_reduce_mul_ordered<T, U>(x: T, y: U) -> U;
-    #[allow(unused)]
-    pub fn simd_reduce_all<T>(x: T) -> bool;
-    #[allow(unused)]
-    pub fn simd_reduce_any<T>(x: T) -> bool;
-    pub fn simd_reduce_max<T, U>(x: T) -> U;
-    pub fn simd_reduce_min<T, U>(x: T) -> U;
-    pub fn simd_reduce_and<T, U>(x: T) -> U;
-    pub fn simd_reduce_or<T, U>(x: T) -> U;
-    pub fn simd_reduce_xor<T, U>(x: T) -> U;
+    simd_sub(a, b).to_array()
+}
 
-    // truncate integer vector to bitmask
-    #[allow(unused)]
-    pub fn simd_bitmask<T, U>(x: T) -> U;
+#[inline]
+#[must_use]
+pub unsafe fn simd_product<T, const N: usize>(a: [T; N]) -> T
+where
+    T: Copy,
+    T: One,
+    T: Mul<Output = T>,
+{
+    extern "platform-intrinsic" {
+        fn simd_reduce_mul_ordered<T, U>(a: T, b: U) -> U;
+    }
 
-    // select
-    pub fn simd_select<M, T>(m: M, a: T, b: T) -> T;
-    #[allow(unused)]
-    pub fn simd_select_bitmask<M, T>(m: M, a: T, b: T) -> T;
+    let a = Simd::from_array(a);
+    let b = <T as One>::one();
+
+    simd_reduce_mul_ordered(a, b)
+}
+
+#[inline]
+#[must_use]
+pub unsafe fn simd_sum<T, const N: usize>(a: [T; N]) -> T
+where
+    T: Copy,
+    T: Zero,
+    T: Add<Output = T>,
+{
+    extern "platform-intrinsic" {
+        fn simd_reduce_add_ordered<T, U>(a: T, b: U) -> U;
+    }
+
+    let a = Simd::from_array(a);
+    let b = <T as Zero>::zero();
+
+    simd_reduce_add_ordered(a, b)
 }
