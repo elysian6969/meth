@@ -15,7 +15,7 @@ pub trait LaneCount {
 
 /// Determine the nearest lane to `lanes` for the given `size`.
 const fn nearest_lane(size: usize, lanes: usize) -> usize {
-    let max_lanes = 32
+    let max_lanes = 64
         / if size < 8 {
             size
         } else {
