@@ -197,6 +197,80 @@ impl<T, const N: usize> Vec<T, N> {
     }
 
     #[inline]
+    pub const fn distance(self, other: Vec<T, N>) -> T
+    where
+        T: ~const Element,
+        T: ~const Real,
+        T: ~const One,
+        T: ~const Zero,
+        T: ~const Add<Output = T>,
+        T: ~const Mul<Output = T>,
+        T: ~const Sub<Output = T>,
+        Lanes<T, N>: LaneCount,
+        [(); Lanes::<T, N>::LANES]:,
+    {
+        <T as Real>::sqrt(self.distance_squared(other))
+    }
+
+    #[inline]
+    pub const fn distance_squared(self, other: Vec<T, N>) -> T
+    where
+        T: ~const Element,
+        T: ~const One,
+        T: ~const Zero,
+        T: ~const Add<Output = T>,
+        T: ~const Mul<Output = T>,
+        T: ~const Sub<Output = T>,
+        Lanes<T, N>: LaneCount,
+        [(); Lanes::<T, N>::LANES]:,
+    {
+        (self - other).magnitude_squared()
+    }
+
+    #[inline]
+    pub const fn dot(self, other: Vec<T, N>) -> T
+    where
+        T: ~const Element,
+        T: ~const One,
+        T: ~const Zero,
+        T: ~const Add<Output = T>,
+        T: ~const Mul<Output = T>,
+        Lanes<T, N>: LaneCount,
+        [(); Lanes::<T, N>::LANES]:,
+    {
+        (self * other).sum()
+    }
+
+    #[inline]
+    pub const fn magnitude(self) -> T
+    where
+        T: ~const Element,
+        T: ~const Real,
+        T: ~const One,
+        T: ~const Zero,
+        T: ~const Add<Output = T>,
+        T: ~const Mul<Output = T>,
+        Lanes<T, N>: LaneCount,
+        [(); Lanes::<T, N>::LANES]:,
+    {
+        <T as Real>::sqrt(self.magnitude_squared())
+    }
+
+    #[inline]
+    pub const fn magnitude_squared(self) -> T
+    where
+        T: ~const Element,
+        T: ~const One,
+        T: ~const Zero,
+        T: ~const Add<Output = T>,
+        T: ~const Mul<Output = T>,
+        Lanes<T, N>: LaneCount,
+        [(); Lanes::<T, N>::LANES]:,
+    {
+        self.dot(self)
+    }
+
+    #[inline]
     pub const fn product(self) -> T
     where
         T: ~const Element,

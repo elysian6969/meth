@@ -262,6 +262,8 @@ pub trait Real: Sealed {
     #[must_use]
     fn sin_cos(self) -> (Self, Self);
 
+    fn sqrt(self) -> Self;
+
     /// Converts radians to degrees.
     ///
     /// ```
@@ -393,6 +395,12 @@ impl const Real for f32 {
 
     #[must_use]
     #[inline]
+    fn sqrt(self) -> f32 {
+        libm::sqrtf(self)
+    }
+
+    #[must_use]
+    #[inline]
     fn to_degrees(self) -> f32 {
         self * <f32 as Sealed>::_180_PI
     }
@@ -506,6 +514,12 @@ impl const Real for f64 {
     #[inline]
     fn sin_cos(self) -> (f64, f64) {
         libm::sincos(self)
+    }
+
+    #[must_use]
+    #[inline]
+    fn sqrt(self) -> f64 {
+        libm::sqrt(self)
     }
 
     #[must_use]
