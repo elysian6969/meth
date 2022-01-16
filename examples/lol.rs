@@ -1,8 +1,7 @@
 #![feature(const_trait_impl)]
 #![feature(inline_const)]
 
-use meth::ops;
-use meth::ops::Simd;
+use meth::Vec;
 
 extern "C" {
     fn scanf(fmt: *const u8, ...);
@@ -10,8 +9,8 @@ extern "C" {
 
 fn main() {
     unsafe {
-        let mut vec1 = Simd::<i32, 4>::uninit();
-        let mut vec2 = Simd::<i32, 4>::uninit();
+        let mut vec1 = Vec::<i32, 4>::splat(0);
+        let mut vec2 = Vec::<i32, 4>::splat(0);
 
         scanf(
             "%d %d %d %d\0".as_ptr(),
