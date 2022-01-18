@@ -76,7 +76,7 @@ impl<T, const N: usize> Vec<T, N> {
     pub const fn from_slice(slice: &[T]) -> Vec<T, N> {
         assert!(
             slice.len() >= N,
-            "slice length must be at least the number of lanes"
+            "slice length must be at least the length of the vector"
         );
 
         let mut vec = MaybeUninit::<Vec<T, N>>::uninit();
@@ -207,7 +207,7 @@ impl<T, const N: usize> Vec<T, N> {
         T: ~const Mul<Output = T>,
         T: ~const Sub<Output = T>,
         Lanes<T, N>: LaneCount,
-        [(); Lanes::<T, N>::LANES]:,
+        [(); <Lanes<T, N> as LaneCount>::LANES]:,
     {
         <T as Real>::sqrt(self.distance_squared(other))
     }
@@ -222,7 +222,7 @@ impl<T, const N: usize> Vec<T, N> {
         T: ~const Mul<Output = T>,
         T: ~const Sub<Output = T>,
         Lanes<T, N>: LaneCount,
-        [(); Lanes::<T, N>::LANES]:,
+        [(); <Lanes<T, N> as LaneCount>::LANES]:,
     {
         (self - other).magnitude_squared()
     }
@@ -236,7 +236,7 @@ impl<T, const N: usize> Vec<T, N> {
         T: ~const Add<Output = T>,
         T: ~const Mul<Output = T>,
         Lanes<T, N>: LaneCount,
-        [(); Lanes::<T, N>::LANES]:,
+        [(); <Lanes<T, N> as LaneCount>::LANES]:,
     {
         (self * other).sum()
     }
@@ -251,7 +251,7 @@ impl<T, const N: usize> Vec<T, N> {
         T: ~const Add<Output = T>,
         T: ~const Mul<Output = T>,
         Lanes<T, N>: LaneCount,
-        [(); Lanes::<T, N>::LANES]:,
+        [(); <Lanes<T, N> as LaneCount>::LANES]:,
     {
         <T as Real>::sqrt(self.magnitude_squared())
     }
@@ -265,7 +265,7 @@ impl<T, const N: usize> Vec<T, N> {
         T: ~const Add<Output = T>,
         T: ~const Mul<Output = T>,
         Lanes<T, N>: LaneCount,
-        [(); Lanes::<T, N>::LANES]:,
+        [(); <Lanes<T, N> as LaneCount>::LANES]:,
     {
         self.dot(self)
     }
@@ -277,7 +277,7 @@ impl<T, const N: usize> Vec<T, N> {
         T: ~const One,
         T: ~const Mul<Output = T>,
         Lanes<T, N>: LaneCount,
-        [(); Lanes::<T, N>::LANES]:,
+        [(); <Lanes<T, N> as LaneCount>::LANES]:,
     {
         product::product(self)
     }
@@ -289,7 +289,7 @@ impl<T, const N: usize> Vec<T, N> {
         T: ~const Zero,
         T: ~const Add<Output = T>,
         Lanes<T, N>: LaneCount,
-        [(); Lanes::<T, N>::LANES]:,
+        [(); <Lanes<T, N> as LaneCount>::LANES]:,
     {
         sum::sum(self)
     }
@@ -302,7 +302,7 @@ impl<T, const N: usize> Vec<T, N> {
         T: ~const Real,
         T: ~const Mul<Output = T>,
         Lanes<T, N>: LaneCount,
-        [(); Lanes::<T, N>::LANES]:,
+        [(); <Lanes<T, N> as LaneCount>::LANES]:,
     {
         self * Self::splat(<T as crate::real::Sealed>::_180_PI)
     }
@@ -315,7 +315,7 @@ impl<T, const N: usize> Vec<T, N> {
         T: ~const Real,
         T: ~const Mul<Output = T>,
         Lanes<T, N>: LaneCount,
-        [(); Lanes::<T, N>::LANES]:,
+        [(); <Lanes<T, N> as LaneCount>::LANES]:,
     {
         self * Self::splat(<T as crate::real::Sealed>::_PI_180)
     }
@@ -326,7 +326,7 @@ where
     T: ~const Element,
     T: ~const Add<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     type Output = Vec<T, N>;
 
@@ -342,7 +342,7 @@ where
     T: ~const Element,
     T: ~const Add<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     #[inline]
     fn add_assign(&mut self, other: Vec<T, N>) {
@@ -355,7 +355,7 @@ where
     T: ~const Element,
     T: ~const Div<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     type Output = Vec<T, N>;
 
@@ -371,7 +371,7 @@ where
     T: ~const Element,
     T: ~const Div<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     #[inline]
     fn div_assign(&mut self, other: Vec<T, N>) {
@@ -384,7 +384,7 @@ where
     T: ~const Element,
     T: ~const Mul<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     type Output = Vec<T, N>;
 
@@ -400,7 +400,7 @@ where
     T: ~const Element,
     T: ~const Mul<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     #[inline]
     fn mul_assign(&mut self, other: Vec<T, N>) {
@@ -413,7 +413,7 @@ where
     T: ~const Element,
     T: ~const Rem<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     type Output = Vec<T, N>;
 
@@ -429,7 +429,7 @@ where
     T: ~const Element,
     T: ~const Rem<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     #[inline]
     fn rem_assign(&mut self, other: Vec<T, N>) {
@@ -442,7 +442,7 @@ where
     T: ~const Element,
     T: ~const Sub<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     type Output = Vec<T, N>;
 
@@ -458,7 +458,7 @@ where
     T: ~const Element,
     T: ~const Sub<Output = T>,
     Lanes<T, N>: LaneCount,
-    [(); Lanes::<T, N>::LANES]:,
+    [(); <Lanes<T, N> as LaneCount>::LANES]:,
 {
     #[inline]
     fn sub_assign(&mut self, other: Vec<T, N>) {

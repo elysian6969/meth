@@ -19,12 +19,14 @@ pub use matrix::Matrix;
 pub use quaternion::Quaternion;
 pub use real::Real;
 pub use vec::{Element, LaneCount, Lanes, Vec};
+pub use vec3::Vec3;
 
 mod euler_angles;
 mod intrinsics;
 mod matrix;
 mod quaternion;
 mod real;
+mod vec3;
 
 pub mod identity;
 pub mod vec;
