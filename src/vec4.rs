@@ -34,6 +34,37 @@ impl<T> Vec4<T> {
         unsafe { &mut *(self.as_mut_ptr() as *mut [T; 4]) }
     }
 
+    /// Create a new `Vec4<T>` from x, and y coordinates, setting y, and w to zero.
+    pub const fn from_xy(x: T, y: T) -> Self
+    where
+        T: ~const Zero,
+    {
+        Self {
+            x,
+            y,
+            z: <T as Zero>::zero(),
+            w: <T as Zero>::zero(),
+        }
+    }
+
+    /// Create a new `Vec4<T>` from x, y, and z coordinates, setting w to zero.
+    pub const fn from_xyz(x: T, y: T, z: T) -> Self
+    where
+        T: ~const Zero,
+    {
+        Self {
+            x,
+            y,
+            z,
+            w: <T as Zero>::zero(),
+        }
+    }
+
+    /// Create a new `Vec4<T>` from x, y, z, and w coordinates.
+    pub const fn from_xyzw(x: T, y: T, z: T, w: T) -> Self {
+        Self { x, y, z, w }
+    }
+
     /// Converts an array to a vector.
     #[inline]
     #[must_use]

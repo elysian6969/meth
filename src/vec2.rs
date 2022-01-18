@@ -32,6 +32,30 @@ impl<T> Vec2<T> {
         unsafe { &mut *(self.as_mut_ptr() as *mut [T; 2]) }
     }
 
+    /// Create a new `Vec2<T>` from x, and y coordinates.
+    pub const fn from_xy(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+
+    /// Create a new `Vec2<T>` from x, y coordinates, discarding z.
+    pub const fn from_xyz(x: T, y: T, z: T) -> Self
+    where
+        T: ~const Zero,
+    {
+        Self { x, y }
+    }
+
+    /// Create a new `Vec2<T>` from x, y, and z coordinates, discarding z, and w.
+    pub const fn from_xyzw(x: T, y: T, z: T, w: T) -> Self
+    where
+        T: Copy,
+    {
+        let _ = z;
+        let _ = w;
+
+        Self { x, y }
+    }
+
     /// Converts an array to a vector.
     #[inline]
     #[must_use]

@@ -33,6 +33,33 @@ impl<T> Vec3<T> {
         unsafe { &mut *(self.as_mut_ptr() as *mut [T; 3]) }
     }
 
+    /// Create a new `Vec3<T>` from x, and y coordinates, setting z to zero.
+    pub const fn from_xy(x: T, y: T) -> Self
+    where
+        T: ~const Zero,
+    {
+        Self {
+            x,
+            y,
+            z: <T as Zero>::zero(),
+        }
+    }
+
+    /// Create a new `Vec3<T>` from x, y, and z coordinates.
+    pub const fn from_xyz(x: T, y: T, z: T) -> Self {
+        Self { x, y, z }
+    }
+
+    /// Create a new `Vec3<T>` from x, y, and z coordinates, discarding w.
+    pub const fn from_xyzw(x: T, y: T, z: T, w: T) -> Self
+    where
+        T: Copy,
+    {
+        let _ = w;
+
+        Self { x, y, z }
+    }
+
     /// Converts an array to a vector.
     #[inline]
     #[must_use]
