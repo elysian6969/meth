@@ -41,7 +41,10 @@ impl<T> Vec2<T> {
     pub const fn from_xyz(x: T, y: T, z: T) -> Self
     where
         T: ~const Zero,
+        T: Copy,
     {
+        let _z = z;
+
         Self { x, y }
     }
 
