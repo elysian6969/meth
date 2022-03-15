@@ -1,5 +1,52 @@
-use crate::identity::{One, Zero};
-use core::ops::{Add, Div, Mul, Rem, Sub};
+// arithmetic
+
+mod add;
+mod div;
+mod mul;
+mod rem;
+mod sub;
+
+pub use add::simd_add;
+pub use div::simd_div;
+pub use mul::simd_mul;
+pub use rem::simd_rem;
+pub use sub::simd_sub;
+
+// cast
+
+mod cast;
+
+pub use cast::{simd_cast, simd_cast_mask};
+
+// use an identity (one, zero)
+
+mod product;
+mod sum;
+
+pub use product::simd_product;
+pub use sum::simd_sum;
+
+// bitwise ops
+
+mod and;
+
+pub use and::simd_and;
+
+// logic ops
+
+mod eq;
+mod ge;
+mod gt;
+mod le;
+mod lt;
+mod ne;
+
+pub use eq::simd_eq;
+pub use ge::simd_ge;
+pub use gt::simd_gt;
+pub use le::simd_le;
+pub use lt::simd_lt;
+pub use ne::simd_ne;
 
 #[derive(Clone, Copy, Debug)]
 #[repr(simd)]
@@ -22,125 +69,4 @@ impl<T, const N: usize> Simd<T, N> {
     {
         self.0
     }
-}
-
-#[inline]
-#[must_use]
-pub unsafe fn simd_add<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
-where
-    T: Copy,
-    T: Add<Output = T>,
-{
-    extern "platform-intrinsic" {
-        fn simd_add<T>(a: T, b: T) -> T;
-    }
-
-    let a = Simd::from_array(a);
-    let b = Simd::from_array(b);
-
-    simd_add(a, b).to_array()
-}
-
-#[inline]
-#[must_use]
-pub unsafe fn simd_div<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
-where
-    T: Copy,
-    T: Div<Output = T>,
-{
-    extern "platform-intrinsic" {
-        fn simd_div<T>(a: T, b: T) -> T;
-    }
-
-    let a = Simd::from_array(a);
-    let b = Simd::from_array(b);
-
-    simd_div(a, b).to_array()
-}
-
-#[inline]
-#[must_use]
-pub unsafe fn simd_mul<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
-where
-    T: Copy,
-    T: Mul<Output = T>,
-{
-    extern "platform-intrinsic" {
-        fn simd_mul<T>(a: T, b: T) -> T;
-    }
-
-    let a = Simd::from_array(a);
-    let b = Simd::from_array(b);
-
-    simd_mul(a, b).to_array()
-}
-
-#[inline]
-#[must_use]
-pub unsafe fn simd_rem<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
-where
-    T: Copy,
-    T: Rem<Output = T>,
-{
-    extern "platform-intrinsic" {
-        fn simd_rem<T>(a: T, b: T) -> T;
-    }
-
-    let a = Simd::from_array(a);
-    let b = Simd::from_array(b);
-
-    simd_rem(a, b).to_array()
-}
-
-#[inline]
-#[must_use]
-pub unsafe fn simd_sub<T, const N: usize>(a: [T; N], b: [T; N]) -> [T; N]
-where
-    T: Copy,
-    T: Sub<Output = T>,
-{
-    extern "platform-intrinsic" {
-        fn simd_sub<T>(a: T, b: T) -> T;
-    }
-
-    let a = Simd::from_array(a);
-    let b = Simd::from_array(b);
-
-    simd_sub(a, b).to_array()
-}
-
-#[inline]
-#[must_use]
-pub unsafe fn simd_product<T, const N: usize>(a: [T; N]) -> T
-where
-    T: Copy,
-    T: One,
-    T: Mul<Output = T>,
-{
-    extern "platform-intrinsic" {
-        fn simd_reduce_mul_ordered<T, U>(a: T, b: U) -> U;
-    }
-
-    let a = Simd::from_array(a);
-    let b = <T as One>::one();
-
-    simd_reduce_mul_ordered(a, b)
-}
-
-#[inline]
-#[must_use]
-pub unsafe fn simd_sum<T, const N: usize>(a: [T; N]) -> T
-where
-    T: Copy,
-    T: Zero,
-    T: Add<Output = T>,
-{
-    extern "platform-intrinsic" {
-        fn simd_reduce_add_ordered<T, U>(a: T, b: U) -> U;
-    }
-
-    let a = Simd::from_array(a);
-    let b = <T as Zero>::zero();
-
-    simd_reduce_add_ordered(a, b)
 }

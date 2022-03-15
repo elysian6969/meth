@@ -24,7 +24,6 @@ pub use vec3::Vec3;
 pub use vec4::Vec4;
 
 mod euler_angles;
-mod intrinsics;
 mod matrix;
 mod quaternion;
 mod real;
@@ -33,4 +32,5 @@ mod vec3;
 mod vec4;
 
 pub mod identity;
+pub mod intrinsics;
 pub mod vec;

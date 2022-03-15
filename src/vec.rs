@@ -321,150 +321,45 @@ impl<T, const N: usize> Vec<T, N> {
     }
 }
 
-impl<T, const N: usize> const Add for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Add<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    type Output = Vec<T, N>;
+macro_rules! impl_op {
+    { $trait:ident, $trait_assign:ident, $fn:ident, $fn_assign:ident, $op:tt } => {
+        impl<T, const N: usize> const $trait for Vec<T, N>
+        where
+            T: ~const Element,
+            T: ~const $trait<Output = T>,
+            Lanes<T, N>: LaneCount,
+            [(); <Lanes<T, N> as LaneCount>::LANES]:,
+        {
+            type Output = Vec<T, N>;
 
-    #[inline]
-    #[must_use]
-    fn add(self, other: Vec<T, N>) -> Vec<T, N> {
-        add::add(self, other)
+            #[inline]
+            #[must_use]
+            fn $fn(self, other: Vec<T, N>) -> Vec<T, N> {
+                $fn::$fn(self, other)
+            }
+        }
+
+        impl<T, const N: usize> const $trait_assign for Vec<T, N>
+        where
+            T: ~const Element,
+            T: ~const $trait <Output = T>,
+            Lanes<T, N>: LaneCount,
+            [(); <Lanes<T, N> as LaneCount>::LANES]:,
+        {
+            #[inline]
+            #[must_use]
+            fn $fn_assign(&mut self, other: Vec<T, N>) {
+                *self = *self $op other;
+            }
+        }
     }
 }
 
-impl<T, const N: usize> const AddAssign for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Add<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    #[inline]
-    fn add_assign(&mut self, other: Vec<T, N>) {
-        *self = *self + other;
-    }
-}
-
-impl<T, const N: usize> const Div for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Div<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    type Output = Vec<T, N>;
-
-    #[inline]
-    #[must_use]
-    fn div(self, other: Vec<T, N>) -> Vec<T, N> {
-        div::div(self, other)
-    }
-}
-
-impl<T, const N: usize> const DivAssign for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Div<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    #[inline]
-    fn div_assign(&mut self, other: Vec<T, N>) {
-        *self = *self / other;
-    }
-}
-
-impl<T, const N: usize> const Mul for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Mul<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    type Output = Vec<T, N>;
-
-    #[inline]
-    #[must_use]
-    fn mul(self, other: Vec<T, N>) -> Vec<T, N> {
-        mul::mul(self, other)
-    }
-}
-
-impl<T, const N: usize> const MulAssign for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Mul<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    #[inline]
-    fn mul_assign(&mut self, other: Vec<T, N>) {
-        *self = *self * other;
-    }
-}
-
-impl<T, const N: usize> const Rem for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Rem<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    type Output = Vec<T, N>;
-
-    #[inline]
-    #[must_use]
-    fn rem(self, other: Vec<T, N>) -> Vec<T, N> {
-        rem::rem(self, other)
-    }
-}
-
-impl<T, const N: usize> const RemAssign for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Rem<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    #[inline]
-    fn rem_assign(&mut self, other: Vec<T, N>) {
-        *self = *self % other;
-    }
-}
-
-impl<T, const N: usize> const Sub for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Sub<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    type Output = Vec<T, N>;
-
-    #[inline]
-    #[must_use]
-    fn sub(self, other: Vec<T, N>) -> Vec<T, N> {
-        sub::sub(self, other)
-    }
-}
-
-impl<T, const N: usize> const SubAssign for Vec<T, N>
-where
-    T: ~const Element,
-    T: ~const Sub<Output = T>,
-    Lanes<T, N>: LaneCount,
-    [(); <Lanes<T, N> as LaneCount>::LANES]:,
-{
-    #[inline]
-    fn sub_assign(&mut self, other: Vec<T, N>) {
-        *self = *self - other;
-    }
-}
+impl_op! { Add, AddAssign, add, add_assign, + }
+impl_op! { Div, DivAssign, div, div_assign, / }
+impl_op! { Mul, MulAssign, mul, mul_assign, * }
+impl_op! { Rem, RemAssign, rem, rem_assign, % }
+impl_op! { Sub, SubAssign, sub, sub_assign, - }
 
 impl<T, const LEN: usize> fmt::Debug for Vec<T, LEN>
 where
