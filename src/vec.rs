@@ -274,7 +274,7 @@ macro_rules! impl_op {
                 // called in non-const contexts
                 #[inline]
                 #[must_use]
-                fn $fn_simd<T, const N: usize>(a: Vec<T, N>, b: Vec<T, N>) -> Vec<T, N>
+                fn $fn_simd<T, const N: usize>(mut a: Vec<T, N>, b: Vec<T, N>) -> Vec<T, N>
                 where
                     T: Element,
                     T: $trait<Output = T>,
@@ -282,22 +282,20 @@ macro_rules! impl_op {
                     [(); Lanes::<T, N>::LANES]:,
                 {
                     unsafe {
-                        let mut a_iter = a.array.chunks_exact(<Lanes<T, N> as LaneCount>::LANES);
+                        let mut a_iter = a.array.chunks_exact_mut(<Lanes<T, N> as LaneCount>::LANES);
                         let mut b_iter = b.array.chunks_exact(<Lanes<T, N> as LaneCount>::LANES);
 
                         while let (Some(a), Some(b)) = (a_iter.next(), b_iter.next()) {
-                            let a = a.as_ptr() as *mut [T; <Lanes<T, N> as LaneCount>::LANES];
-                            let b = b.as_ptr() as *mut [T; <Lanes<T, N> as LaneCount>::LANES];
+                            let a = a.as_mut_ptr().cast::<[T; <Lanes<T, N> as LaneCount>::LANES]>();
+                            let b = b.as_ptr().cast::<[T; <Lanes<T, N> as LaneCount>::LANES]>();
 
                             *a = crate::intrinsics::$fn_simd(*a, *b);
                         }
 
-                        let mut a_iter = a_iter.remainder().iter();
+                        let mut a_iter = a_iter.into_remainder().iter_mut();
                         let mut b_iter = b_iter.remainder().iter();
 
                         while let (Some(a), Some(b)) = (a_iter.next(), b_iter.next()) {
-                            let a = &mut *(a as *const T as *mut T);
-
                             *a = *a $op *b;
                         }
 
