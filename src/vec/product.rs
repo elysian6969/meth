@@ -46,7 +46,7 @@ where
     {
         unsafe {
             let mut output = <T as One>::one();
-            let mut iter = vec.0.chunks_exact(<Lanes<T, N> as LaneCount>::LANES);
+            let mut iter = vec.array.chunks_exact(<Lanes<T, N> as LaneCount>::LANES);
 
             while let Some(element) = iter.next() {
                 let element = element.as_ptr() as *const [T; <Lanes<T, N> as LaneCount>::LANES];
