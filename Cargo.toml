@@ -4,4 +4,4 @@ name    = "meth"
 version = "0.1.0"
 
 [dependencies]
-libm = { default-features = false, git = "https://github.com/mov-rax-rax/libm.git" }
+libm = { default-features = false, git = "https://github.com/elysian6969/libm.git" }
