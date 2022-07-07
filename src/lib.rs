@@ -7,6 +7,7 @@
 #![feature(const_refs_to_cell)]
 #![feature(const_slice_index)]
 #![feature(const_trait_impl)]
+#![feature(const_transmute_copy)]
 #![feature(generic_const_exprs)]
 #![feature(platform_intrinsics)]
 #![feature(repr_simd)]

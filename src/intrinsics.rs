@@ -1,3 +1,5 @@
+use core::mem;
+
 // arithmetic
 
 mod add;
@@ -67,6 +69,6 @@ impl<T, const N: usize> Simd<T, N> {
     where
         T: Copy,
     {
-        self.0
+        unsafe { mem::transmute_copy(&self) }
     }
 }
