@@ -1,4 +1,4 @@
-use core::mem;
+use cake::mem;
 
 // arithmetic
 
@@ -50,25 +50,47 @@ pub use le::simd_le;
 pub use lt::simd_lt;
 pub use ne::simd_ne;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 #[repr(simd)]
 struct Simd<T, const N: usize>(pub [T; N]);
 
 impl<T, const N: usize> Simd<T, N> {
-    /// Converts an array to a SIMD vector.
     #[inline]
-    #[must_use]
     pub const fn from_array(array: [T; N]) -> Self {
         Self(array)
     }
 
-    /// Converts a SIMD vector to an array.
     #[inline]
-    #[must_use]
     pub const fn to_array(self) -> [T; N]
     where
         T: Copy,
     {
-        unsafe { mem::transmute_copy(&self) }
+        // SAFETY: it's either this or llvm crashing
+        unsafe { mem::transmute(self) }
     }
 }
+
+/*use cake::array;
+
+const fn perform_fold<P, T, const N: usize>(
+    (left, right, perform): (&[T; N], &[T; N], &P),
+    index: usize,
+) -> T
+where
+    P: Copy,
+    P: ~const FnOnce(T, T) -> T,
+    T: Copy,
+{
+    perform(left[index], right[index])
+}
+
+const fn naive_perform<P, T, const N: usize>(left: [T; N], right: [T; N], perform: P) -> [T; N]
+where
+    P: Copy,
+    P: ~const FnOnce(T, T) -> T,
+    T: Copy,
+{
+    array::fold((&left, &right, &perform), perform_fold)
+}*/
+
+//fn simd_perform<T, const N: usize>(left: [T; N], right: [T; N]) -> [T; N] {}
